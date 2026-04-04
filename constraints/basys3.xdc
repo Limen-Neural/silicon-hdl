@@ -13,7 +13,7 @@ set_property -dict {PACKAGE_PIN U18 IOSTANDARD LVCMOS33} [get_ports rst_n]
 set_property -dict {PACKAGE_PIN B18 IOSTANDARD LVCMOS33} [get_ports uart_rx]
 set_property -dict {PACKAGE_PIN A18 IOSTANDARD LVCMOS33} [get_ports uart_tx]
 
-## LEDs LD0–LD15
+## LEDs LD0–LD15 
 set_property -dict {PACKAGE_PIN U16 IOSTANDARD LVCMOS33} [get_ports {led[0]}]
 set_property -dict {PACKAGE_PIN E19 IOSTANDARD LVCMOS33} [get_ports {led[1]}]
 set_property -dict {PACKAGE_PIN U19 IOSTANDARD LVCMOS33} [get_ports {led[2]}]
@@ -30,3 +30,49 @@ set_property -dict {PACKAGE_PIN P3  IOSTANDARD LVCMOS33} [get_ports {led[12]}]
 set_property -dict {PACKAGE_PIN N3  IOSTANDARD LVCMOS33} [get_ports {led[13]}]
 set_property -dict {PACKAGE_PIN P1  IOSTANDARD LVCMOS33} [get_ports {led[14]}]
 set_property -dict {PACKAGE_PIN L1  IOSTANDARD LVCMOS33} [get_ports {led[15]}]
+
+# Neuron parameter RAMs (seperate threshold and leak)
+# TODO: Add constraints for neuron parameter RAMs
+logic [PARAM_WIDTH-1:0] threshold_val;
+logic [PARAM_WIDTH-1:0] leak_val;
+
+NeuronParam #(
+   .ADDR_WIDTH (NEURON_ADDR_WIDTH),
+   .PARAM_WIDTH (PARAM_WIDTH)
+) u_threshold_ram (
+    .clk  (clk),
+    .we   (1'b0),
+    .addr ('0),
+    .din  ('0),
+    .dout (threshold_val)
+  );
+
+  // Weight RAMs
+  // TODO: Add constraints for weight RAMs
+  logic [DATA_WIDTH-1:0] weight_dout;
+  WeightRam #(
+    .ADDR_WIDTH (WEIGHT_ADDR_W),
+    .DATA_WIDTH (DATA_WIDTH)
+  ) u_weight_ram (
+    .clk  (clk),
+    .we   (1'b0),
+    .addr ('0),
+    .din  ('0),
+    .dout (weight_dout)
+  );
+
+// LIF neuron
+// TODO: Add constraints for LIF neuron
+logic spike_out;
+
+LifNeuron #(
+    .NEURON_ADDR_WIDTH (NEURON_ADDR_WIDTH),
+    .PARAM_WIDTH (PARAM_WIDTH)
+) u_lif_neuron (
+    .clk (clk),
+    .rst_n (rst_n),
+    .spike_in (1'b0),
+    .threshold_val (threshold_val),
+    .leak_val (leak_val),
+    .spike_out (spike_out)
+);
