@@ -1,0 +1,72 @@
+# sim_core.tcl
+# Vivado simulation script for spikenaut-core-sv unit testbenches
+#
+# Library ownership:
+#   lib_bridge  <- spikenaut-bridge-sv/rtl
+#   lib_core    <- spikenaut-core-sv/rtl
+#   lib_tb_core <- spikenaut-core-sv/tb
+#
+# Usage (Vivado Tcl console or batch mode):
+#   vivado -mode batch -source scripts/sim_core.tcl
+
+# ---------------------------------------------------------------------------
+# 0. Project setup
+# ---------------------------------------------------------------------------
+set repo_root [file normalize [file join [file dirname [info script]] ..]]
+
+set project_name  spikenaut_sim_core
+set project_dir   [file join $repo_root vivado_projects $project_name]
+set part          xc7a35tcpg236-1
+
+create_project -force $project_name $project_dir -part $part \
+    -ip false -rtl_kernel false
+
+set_property simulator_language Mixed [current_project]
+
+# ---------------------------------------------------------------------------
+# 1. lib_bridge  –  spikenaut-bridge-sv/rtl  (needed by some core TBs)
+# ---------------------------------------------------------------------------
+set bridge_rtl [file join $repo_root spikenaut-bridge-sv rtl]
+
+read_verilog -sv [list \
+    [file join $bridge_rtl UartRx.sv]        \
+    [file join $bridge_rtl UartTx.sv]        \
+    [file join $bridge_rtl SiliconBridge.sv] \
+]
+
+# ---------------------------------------------------------------------------
+# 2. lib_core  –  spikenaut-core-sv/rtl (canonical, single copy)
+# ---------------------------------------------------------------------------
+set core_rtl [file join $repo_root spikenaut-core-sv rtl]
+
+read_verilog -sv [list \
+    [file join $core_rtl LifNeuron.sv]      \
+    [file join $core_rtl WeightRam.sv]      \
+    [file join $core_rtl NeuronParamRam.sv] \
+    [file join $core_rtl StdpController.sv] \
+]
+
+# ---------------------------------------------------------------------------
+# 3. lib_tb_core  –  spikenaut-core-sv/tb (testbenches)
+# ---------------------------------------------------------------------------
+set core_tb [file join $repo_root spikenaut-core-sv tb]
+
+# Add all testbench files in tb/ if any exist
+if {[llength [glob -nocomplain [file join $core_tb *.sv]]] > 0} {
+    read_verilog -sv [glob [file join $core_tb *.sv]]
+}
+
+# ---------------------------------------------------------------------------
+# 4. Simulation settings
+# ---------------------------------------------------------------------------
+set_property top tb_LifNeuron [get_filesets sim_1]
+set_property top_lib xil_defaultlib [get_filesets sim_1]
+
+# ---------------------------------------------------------------------------
+# 5. Run simulation
+# ---------------------------------------------------------------------------
+launch_simulation
+run 1us
+close_sim
+
+puts "=== sim_core.tcl complete ==="
