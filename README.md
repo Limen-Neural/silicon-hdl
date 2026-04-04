@@ -1,1 +1,1 @@
-# Spikenaut-Hardware
+# Spikenaut Hardware
