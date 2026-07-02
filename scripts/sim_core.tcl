@@ -65,6 +65,10 @@ foreach tb_top $core_tb_tops {
     set_property top $tb_top [get_filesets sim_1]
     set_property top_lib xil_defaultlib [get_filesets sim_1]
 
+    # Force re-elaboration when switching top modules to avoid stale
+    # compilation artifacts / dirty directory issues in the sim fileset.
+    # catch() guards the first iteration where the run may not exist yet.
+    catch {reset_run sim_1}
     launch_simulation
     run 1us
     close_sim

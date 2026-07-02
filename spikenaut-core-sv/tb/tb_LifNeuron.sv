@@ -84,11 +84,24 @@ module tb_LifNeuron;
         // ------------------------------------------------------------
         // After the pulse, membrane potential should have been reset to 0.
         // Verify by checking it takes the same number of cycles to spike
-        // again from a fresh start.
+        // again from a fresh start (addresses Gemini/Codacy review feedback:
+        // the original comment promised this check but the code never
+        // performed it).
         // ------------------------------------------------------------
         spike_in = 1'b0;
         @(negedge clk);
         check(spike_out == 1'b0, "spike_out should stay low while membrane is reset and decaying");
+
+        // Drive a second integration from the reset state and confirm the
+        // neuron fires after the same 3 cycles, proving the membrane was
+        // properly cleared by the spike-reset path.
+        spike_in = 1'b1;
+        @(negedge clk); // mem: 0 -> 40
+        @(negedge clk); // mem: 40 -> 79 (40-1+40=79)
+        @(negedge clk); // mem: 79 -> 118 -> crosses threshold(100)
+        check(spike_out == 1'b1, "spike_out should assert again after 3 cycles of integration from reset");
+        @(negedge clk); // refractory after second spike
+        check(spike_out == 1'b0, "spike_out should deassert after second spike (refractory)");
 
         // ------------------------------------------------------------
         // Overflow saturation: when decayed_mem + weight would exceed the
