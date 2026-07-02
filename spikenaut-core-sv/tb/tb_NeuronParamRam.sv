@@ -35,9 +35,9 @@ module tb_NeuronParamRam;
     always #(CLK_PERIOD/2) clk = ~clk;
 
     task automatic check(input logic cond, input string msg);
-        if (cond === 1'bx) begin
+        if ($isunknown(cond)) begin
             errors++;
-            $display("FAIL (X state): %s", msg);
+            $display("FAIL (unknown state): %s", msg);
         end else if (!cond) begin
             errors++;
             $display("FAIL: %s", msg);
