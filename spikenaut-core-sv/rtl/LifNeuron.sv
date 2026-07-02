@@ -17,15 +17,15 @@ module LifNeuron #(
 
     logic [DATA_WIDTH-1:0] membrane_potential;
 
-    // Elaboration-time guard: PARAM_WIDTH must equal DATA_WIDTH. The internal
-    // arithmetic uses DATA_WIDTH-wide signals, so a mismatched PARAM_WIDTH would
-    // silently truncate or zero-extend threshold/leak. Assignment-based resizing
-    // (below) is still safe under SV rules, but this makes the contract explicit.
-    initial begin
+    // Elaboration-time guard: PARAM_WIDTH must equal DATA_WIDTH. Uses a
+    // generate-if so the check fires during elaboration/synthesis (not just
+    // at simulation time 0 like an initial block), catching width mismatches
+    // at Vivado build time.
+    generate
         if (PARAM_WIDTH != DATA_WIDTH)
             $error("LifNeuron: PARAM_WIDTH (%0d) must equal DATA_WIDTH (%0d)",
                    PARAM_WIDTH, DATA_WIDTH);
-    end
+    endgenerate
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
