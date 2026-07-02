@@ -39,8 +39,11 @@ module tb_LifNeuron;
     initial clk = 1'b0;
     always #(CLK_PERIOD/2) clk = ~clk;
 
-    task automatic check(input bit cond, input string msg);
-        if (!cond) begin
+    task automatic check(input logic cond, input string msg);
+        if (cond === 1'bx) begin
+            errors++;
+            $display("FAIL (X state): %s", msg);
+        end else if (!cond) begin
             errors++;
             $display("FAIL: %s", msg);
         end
