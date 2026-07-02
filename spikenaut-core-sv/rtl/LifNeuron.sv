@@ -16,9 +16,6 @@ module LifNeuron #(
 );
 
     logic [DATA_WIDTH-1:0] membrane_potential;
-    logic [DATA_WIDTH-1:0] decayed;
-
-    assign decayed = membrane_potential - leak[DATA_WIDTH-1:0];
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -26,14 +23,18 @@ module LifNeuron #(
             spike_out          <= 1'b0;
         end else begin
             // Reset membrane in the same cycle as the spike to ensure a
+            // single-cycle pulse on spike_out.
             automatic logic [DATA_WIDTH-1:0] next_mem;
             automatic logic [DATA_WIDTH-1:0] decayed_mem;
             automatic logic [DATA_WIDTH-1:0] leak_val;
-            
+            automatic logic                  next_spike;
+
             leak_val = leak[DATA_WIDTH-1:0];
-            // single-cycle pulse on spike_out.
+
             if (spike_out) begin
                 // Reset after spike
+                next_mem   = '0;
+                next_spike = 1'b0;
             end else begin
                 // Apply leak with saturation to prevent underflow
                 if (membrane_potential > leak_val)
@@ -46,11 +47,15 @@ module LifNeuron #(
                     next_mem = decayed_mem + weight;
                 else
                     next_mem = decayed_mem;
+
+                // Compare against the freshly-integrated value so a spike is
+                // registered as soon as it is crossed (fixes a one-cycle
+                // delay bug from comparing the pre-integration value).
+                next_spike = (next_mem >= threshold[DATA_WIDTH-1:0]);
             end
-            
-            // Update state using current-cycle value (fixes one cycle delay)
+
             membrane_potential <= next_mem;
-            spike_out <= !spike_out && (membrane_potential >= threshold[DATA_WIDTH-1:0]);
+            spike_out          <= next_spike;
         end
     end
 

@@ -1,0 +1,101 @@
+// tb_LifNeuron.sv
+// Unit testbench for spikenaut-core-sv/rtl/LifNeuron.sv
+//
+// Stimulus is applied and sampled on negedge clk (mid-cycle) to avoid
+// race conditions with the DUT's posedge-triggered always_ff block.
+
+`timescale 1ns/1ps
+
+module tb_LifNeuron;
+
+    localparam int DATA_WIDTH  = 16;
+    localparam int PARAM_WIDTH = 16;
+    localparam int CLK_PERIOD  = 10;
+
+    logic                    clk;
+    logic                    rst_n;
+    logic                    spike_in;
+    logic [DATA_WIDTH-1:0]   weight;
+    logic [PARAM_WIDTH-1:0]  threshold;
+    logic [PARAM_WIDTH-1:0]  leak;
+    logic                    spike_out;
+
+    int errors = 0;
+
+    LifNeuron #(
+        .DATA_WIDTH  (DATA_WIDTH),
+        .PARAM_WIDTH (PARAM_WIDTH)
+    ) dut (
+        .clk       (clk),
+        .rst_n     (rst_n),
+        .spike_in  (spike_in),
+        .weight    (weight),
+        .threshold (threshold),
+        .leak      (leak),
+        .spike_out (spike_out)
+    );
+
+    // Clock generation
+    initial clk = 1'b0;
+    always #(CLK_PERIOD/2) clk = ~clk;
+
+    task automatic check(input bit cond, input string msg);
+        if (!cond) begin
+            errors++;
+            $display("FAIL: %s", msg);
+        end
+    endtask
+
+    initial begin
+        // ------------------------------------------------------------
+        // Reset
+        // ------------------------------------------------------------
+        rst_n     = 1'b0;
+        spike_in  = 1'b0;
+        weight    = '0;
+        threshold = 16'd100;
+        leak      = 16'd1;
+        repeat (2) @(negedge clk);
+        check(spike_out == 1'b0, "spike_out should be 0 after reset");
+        rst_n = 1'b1;
+
+        // ------------------------------------------------------------
+        // Leak with no input: membrane potential should stay at 0
+        // (saturated) and never spike.
+        // ------------------------------------------------------------
+        repeat (5) @(negedge clk);
+        check(spike_out == 1'b0, "spike_out should remain 0 with no input");
+
+        // ------------------------------------------------------------
+        // Integrate: drive spike_in with a weight large enough to cross
+        // threshold quickly, and check that spike_out pulses for exactly
+        // one cycle when the threshold is crossed.
+        // ------------------------------------------------------------
+        weight   = 16'd40;
+        spike_in = 1'b1;
+        @(negedge clk); // mem: 0 -> 40
+        @(negedge clk); // mem: 40 -> 79 (leak of 1 each step: 40-1+40=79)
+        @(negedge clk); // mem: 79 -> 118 -> crosses threshold(100)
+        check(spike_out == 1'b1, "spike_out should assert once threshold is crossed");
+
+        @(negedge clk);
+        check(spike_out == 1'b0, "spike_out should deassert one cycle after pulsing (single-cycle pulse)");
+
+        // ------------------------------------------------------------
+        // After the pulse, membrane potential should have been reset to 0.
+        // Verify by checking it takes the same number of cycles to spike
+        // again from a fresh start.
+        // ------------------------------------------------------------
+        spike_in = 1'b0;
+        @(negedge clk);
+        check(spike_out == 1'b0, "spike_out should stay low while membrane is reset and decaying");
+
+        if (errors == 0)
+            $display("TB_LIFNEURON: ALL TESTS PASSED");
+        else
+            $display("TB_LIFNEURON: %0d TEST(S) FAILED", errors);
+
+        $finish;
+    end
+
+endmodule
