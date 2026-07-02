@@ -90,6 +90,25 @@ module tb_LifNeuron;
         @(negedge clk);
         check(spike_out == 1'b0, "spike_out should stay low while membrane is reset and decaying");
 
+        // ------------------------------------------------------------
+        // Overflow saturation: when decayed_mem + weight would exceed the
+        // DATA_WIDTH range, next_mem must saturate at max (all 1s) instead
+        // of wrapping around. A threshold set to the max value should then
+        // still fire, proving the saturation preserves the threshold
+        // crossing instead of masking it.
+        // ------------------------------------------------------------
+        threshold = 16'hFFFF;  // max threshold
+        leak      = 16'd0;     // no decay for a clean overflow test
+        weight    = 16'd40000;
+        spike_in  = 1'b1;
+        @(negedge clk);  // mem: 0 -> 40000  (no overflow yet)
+        check(spike_out == 1'b0, "no spike yet: 40000 < max threshold");
+        @(negedge clk);  // mem: 40000 + 40000 -> saturates to 65535, fires
+        check(spike_out == 1'b1, "spike_out should fire when membrane saturates at max (>= max threshold)");
+        @(negedge clk);  // refractory reset after the saturation spike
+        check(spike_out == 1'b0, "spike_out should deassert after saturation spike (refractory)");
+        spike_in = 1'b0;
+
         if (errors == 0)
             $display("TB_LIFNEURON: ALL TESTS PASSED");
         else

@@ -17,6 +17,16 @@ module LifNeuron #(
 
     logic [DATA_WIDTH-1:0] membrane_potential;
 
+    // Elaboration-time guard: PARAM_WIDTH must equal DATA_WIDTH. The internal
+    // arithmetic uses DATA_WIDTH-wide signals, so a mismatched PARAM_WIDTH would
+    // silently truncate or zero-extend threshold/leak. Assignment-based resizing
+    // (below) is still safe under SV rules, but this makes the contract explicit.
+    initial begin
+        if (PARAM_WIDTH != DATA_WIDTH)
+            $error("LifNeuron: PARAM_WIDTH (%0d) must equal DATA_WIDTH (%0d)",
+                   PARAM_WIDTH, DATA_WIDTH);
+    end
+
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             membrane_potential <= '0;
@@ -27,12 +37,21 @@ module LifNeuron #(
             automatic logic [DATA_WIDTH-1:0] next_mem;
             automatic logic [DATA_WIDTH-1:0] decayed_mem;
             automatic logic [DATA_WIDTH-1:0] leak_val;
+            automatic logic [DATA_WIDTH-1:0] threshold_val;
             automatic logic                  next_spike;
 
-            leak_val = leak[DATA_WIDTH-1:0];
+            // Use assignment-based resize so SystemVerilog handles any width
+            // mismatch safely (zero-extend/truncate) instead of raw bit-slicing
+            // which is unsafe when PARAM_WIDTH != DATA_WIDTH.
+            leak_val      = leak;
+            threshold_val = threshold;
 
             if (spike_out) begin
-                // Reset after spike
+                // Refractory period: after a spike the membrane is reset to
+                // zero and incoming spikes during this single reset cycle are
+                // intentionally ignored. This mirrors biological LIF neuron
+                // behavior (absolute refractory period) and guarantees a clean
+                // single-cycle pulse on spike_out.
                 next_mem   = '0;
                 next_spike = 1'b0;
             end else begin
@@ -42,16 +61,21 @@ module LifNeuron #(
                 else
                     decayed_mem = '0;
 
-                // Integrate spike input
-                if (spike_in)
-                    next_mem = decayed_mem + weight;
-                else
+                // Integrate spike input with saturation to prevent arithmetic
+                // wraparound that could mask a threshold crossing.
+                if (spike_in) begin
+                    if (decayed_mem > ({DATA_WIDTH{1'b1}} - weight))
+                        next_mem = {DATA_WIDTH{1'b1}};  // saturate at max
+                    else
+                        next_mem = decayed_mem + weight;
+                end else begin
                     next_mem = decayed_mem;
+                end
 
                 // Compare against the freshly-integrated value so a spike is
                 // registered as soon as it is crossed (fixes a one-cycle
                 // delay bug from comparing the pre-integration value).
-                next_spike = (next_mem >= threshold[DATA_WIDTH-1:0]);
+                next_spike = (next_mem >= threshold_val);
             end
 
             membrane_potential <= next_mem;
