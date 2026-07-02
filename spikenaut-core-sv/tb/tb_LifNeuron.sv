@@ -122,12 +122,13 @@ module tb_LifNeuron;
         check(spike_out == 1'b0, "spike_out should deassert after saturation spike (refractory)");
         spike_in = 1'b0;
 
-        if (errors == 0)
+        if (errors == 0) begin
             $display("TB_LIFNEURON: ALL TESTS PASSED");
-        else
+            $finish;
+        end else begin
             $display("TB_LIFNEURON: %0d TEST(S) FAILED", errors);
-
-        $finish;
+            $fatal(1, "TB_LIFNEURON: testbench FAILED");
+        end
     end
 
 endmodule

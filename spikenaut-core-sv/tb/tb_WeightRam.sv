@@ -75,12 +75,13 @@ module tb_WeightRam;
         @(negedge clk);
         check(dout == 16'hABCD, "addr 5 should retain its value after unrelated write");
 
-        if (errors == 0)
+        if (errors == 0) begin
             $display("TB_WEIGHTRAM: ALL TESTS PASSED");
-        else
+            $finish;
+        end else begin
             $display("TB_WEIGHTRAM: %0d TEST(S) FAILED", errors);
-
-        $finish;
+            $fatal(1, "TB_WEIGHTRAM: testbench FAILED");
+        end
     end
 
 endmodule

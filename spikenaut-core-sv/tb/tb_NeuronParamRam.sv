@@ -74,12 +74,13 @@ module tb_NeuronParamRam;
         @(negedge clk);
         check(dout == 16'd500, "addr 3 should retain its value after unrelated write");
 
-        if (errors == 0)
+        if (errors == 0) begin
             $display("TB_NEURONPARAMRAM: ALL TESTS PASSED");
-        else
+            $finish;
+        end else begin
             $display("TB_NEURONPARAMRAM: %0d TEST(S) FAILED", errors);
-
-        $finish;
+            $fatal(1, "TB_NEURONPARAMRAM: testbench FAILED");
+        end
     end
 
 endmodule
