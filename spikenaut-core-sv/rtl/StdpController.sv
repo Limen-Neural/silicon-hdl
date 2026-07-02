@@ -31,7 +31,10 @@ module StdpController #(
         end else begin
             pre_trace  <= pre_spike  ? {WINDOW_WIDTH{1'b1}} : (pre_trace  >> 1);
             post_trace <= post_spike ? {WINDOW_WIDTH{1'b1}} : (post_trace >> 1);
-            weight_we       <= pre_spike | post_spike;
+            // Only assert weight_we when an actual potentiation or depression
+            // occurs — prevents spurious write-backs when traces have decayed.
+            weight_we       <= (pre_spike && post_trace != '0) ||
+                               (post_spike && pre_trace != '0);
             weight_addr_out <= weight_addr;
             if (pre_spike && post_trace != '0)
                 // Potentiation – saturate at maximum value
