@@ -1,11 +1,11 @@
-# Spikenaut Hardware
+# silicon-hdl
 
-Deduplicated, Vivado-ready monorepo for the Spikenaut spiking neural network FPGA platform.
+Deduplicated, Vivado-ready monorepo for neuromorphic / spiking neural network FPGA primitives.
 
 ## Repository layout
 
 ```
-Spikenaut-Hardware/
+silicon-hdl/
 ├── spikenaut-core-sv/         # lib_core  – canonical SNN logic
 │   ├── rtl/                   #   LifNeuron, WeightRam, NeuronParamRam, StdpController
 │   ├── tb/                    #   Unit testbenches
