@@ -4,14 +4,15 @@
 
 module UartTx #(
     parameter int CLK_FREQ  = 100_000_000,
-    parameter int BAUD_RATE = 115_200
+    parameter int BAUD_RATE = 115_200,
+    parameter int DATA_WIDTH = 8   // gh-14 5u3.7: propagated from SiliconBridge (default 8; UART serial data bits).
 )(
-    input  logic       clk,
-    input  logic       rst_n,
-    input  logic [7:0] data,
-    input  logic       send,
-    output logic       tx,
-    output logic       busy
+    input  logic                  clk,
+    input  logic                  rst_n,
+    input  logic [DATA_WIDTH-1:0] data,
+    input  logic                  send,
+    output logic                  tx,
+    output logic                  busy
 );
 
     localparam int CLKS_PER_BIT = CLK_FREQ / BAUD_RATE;
@@ -25,8 +26,8 @@ module UartTx #(
 
     state_t              state;
     logic [$clog2(CLKS_PER_BIT)-1:0] clk_cnt;
-    logic [2:0]          bit_idx;
-    logic [7:0]          shift_reg;
+    logic [$clog2(DATA_WIDTH)-1:0] bit_idx;
+    logic [DATA_WIDTH-1:0] shift_reg;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -62,7 +63,7 @@ module UartTx #(
                     tx <= shift_reg[bit_idx];
                     if (clk_cnt == CLKS_PER_BIT - 1) begin
                         clk_cnt <= '0;
-                        if (bit_idx == 3'h7) begin
+                        if (bit_idx == DATA_WIDTH-1) begin
                             state <= STOP;
                         end else begin
                             bit_idx <= bit_idx + 1;

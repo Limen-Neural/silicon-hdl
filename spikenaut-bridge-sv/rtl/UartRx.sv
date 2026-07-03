@@ -4,13 +4,14 @@
 
 module UartRx #(
     parameter int CLK_FREQ  = 100_000_000,
-    parameter int BAUD_RATE = 115_200
+    parameter int BAUD_RATE = 115_200,
+    parameter int DATA_WIDTH = 8   // gh-14 5u3.7: propagated from SiliconBridge for consistency (UART framing uses this as data bits; default 8 per serial protocol).
 )(
-    input  logic       clk,
-    input  logic       rst_n,
-    input  logic       rx,
-    output logic [7:0] data,
-    output logic       valid
+    input  logic                  clk,
+    input  logic                  rst_n,
+    input  logic                  rx,
+    output logic [DATA_WIDTH-1:0] data,
+    output logic                  valid
 );
 
     localparam int CLKS_PER_BIT = CLK_FREQ / BAUD_RATE;
@@ -24,8 +25,8 @@ module UartRx #(
 
     state_t              state;
     logic [$clog2(CLKS_PER_BIT)-1:0] clk_cnt;
-    logic [2:0]          bit_idx;
-    logic [7:0]          shift_reg;
+    logic [$clog2(DATA_WIDTH)-1:0] bit_idx;
+    logic [DATA_WIDTH-1:0] shift_reg;
 
     // 2FF synchronizer for async serial rx (from external UART line).
     // gh-14 / Greptile comment 3035928747 (P1 Critical): prevents metastability
@@ -68,7 +69,7 @@ module UartRx #(
                     if (clk_cnt == CLKS_PER_BIT - 1) begin
                         clk_cnt            <= '0;
                         shift_reg[bit_idx] <= rx_sync_1;
-                        if (bit_idx == 3'h7) begin
+                        if (bit_idx == DATA_WIDTH-1) begin
                             state <= STOP;
                         end else begin
                             bit_idx <= bit_idx + 1;

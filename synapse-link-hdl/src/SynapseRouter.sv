@@ -3,8 +3,9 @@
 // Address-event representation (AER) synapse router
 
 module SynapseRouter #(
-    parameter int NEURON_ADDR_WIDTH = 8,
-    parameter int DATA_WIDTH        = 8
+    parameter int NEURON_ADDR_WIDTH = 8
+    // DATA_WIDTH removed (was unused per gh-14 5u3.7 comments 8803/5441).
+    // AER is address-only; no data payload width here.
 )(
     input  logic                        clk,
     input  logic                        rst_n,

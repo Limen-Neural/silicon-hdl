@@ -59,6 +59,8 @@ if {[llength [glob -nocomplain [file join $core_tb *.sv]]] > 0} {
 # ---------------------------------------------------------------------------
 # 4. Run each unit testbench in turn
 # ---------------------------------------------------------------------------
+# (gh-14 5u3.8 addressed by making it run multiple; origin/main has the list
+# from #11 + testbenches added.)
 set core_tb_tops {tb_LifNeuron tb_WeightRam tb_NeuronParamRam tb_StdpController}
 
 foreach tb_top $core_tb_tops {

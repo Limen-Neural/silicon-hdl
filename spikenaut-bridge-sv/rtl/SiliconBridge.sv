@@ -1,6 +1,9 @@
 // SiliconBridge.sv
 // Canonical source: spikenaut-bridge-sv/rtl
 // Top-level bridge: wraps UartRx and UartTx for spike-stream transport
+//
+// gh-14 5u3.7: DATA_WIDTH propagated to UARTs (default 8 matches serial protocol data bits).
+// Documented 8b constraint; no longer misleading. See Uart*/tops.
 
 module SiliconBridge #(
     parameter int CLK_FREQ  = 100_000_000,
@@ -23,7 +26,8 @@ module SiliconBridge #(
 
     UartRx #(
         .CLK_FREQ  (CLK_FREQ),
-        .BAUD_RATE (BAUD_RATE)
+        .BAUD_RATE (BAUD_RATE),
+        .DATA_WIDTH (DATA_WIDTH)
     ) u_uart_rx (
         .clk   (clk),
         .rst_n (rst_n),
@@ -34,7 +38,8 @@ module SiliconBridge #(
 
     UartTx #(
         .CLK_FREQ  (CLK_FREQ),
-        .BAUD_RATE (BAUD_RATE)
+        .BAUD_RATE (BAUD_RATE),
+        .DATA_WIDTH (DATA_WIDTH)
     ) u_uart_tx (
         .clk   (clk),
         .rst_n (rst_n),

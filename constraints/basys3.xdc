@@ -6,7 +6,7 @@
 set_property -dict {PACKAGE_PIN W5 IOSTANDARD LVCMOS33} [get_ports clk]
 create_clock -period 10.000 -name sys_clk_pin -waveform {0.000 5.000} -add [get_ports clk]
 
-## Reset – U18 (BTNU, active-high; invert to produce active-low rst_n)
+## Reset – U18 (BTNC/CPU_RESET, active-high button; inversion in RTL tops to produce active-low rst_n convention)
 set_property -dict {PACKAGE_PIN U18 IOSTANDARD LVCMOS33} [get_ports rst_n]
 
 ## UART
@@ -30,3 +30,6 @@ set_property -dict {PACKAGE_PIN P3  IOSTANDARD LVCMOS33} [get_ports {led[12]}]
 set_property -dict {PACKAGE_PIN N3  IOSTANDARD LVCMOS33} [get_ports {led[13]}]
 set_property -dict {PACKAGE_PIN P1  IOSTANDARD LVCMOS33} [get_ports {led[14]}]
 set_property -dict {PACKAGE_PIN L1  IOSTANDARD LVCMOS33} [get_ports {led[15]}]
+
+# (End of constraints; stray SV code removed per gh-14 5u3.5 / prior closed bead remnant.)
+# Polarity: inversion implemented in RTL (both Basys3_Top.sv) -- see tops for `logic rst = ~rst_n;`.

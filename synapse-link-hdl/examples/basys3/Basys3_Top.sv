@@ -24,28 +24,66 @@ module synapse_demo_basys3_top (
     localparam int CLK_FREQ  = 100_000_000;
     localparam int BAUD_RATE = 115_200;
 
+    // gh-14 5u3.5: inversion in RTL (XDC pin/port rst_n kept; BTNC active-high button).
+    logic rst;
+    assign rst = ~rst_n;
+
     // ----------------------------------------------------------------
     // Bridge: UART <-> internal byte stream
     // ----------------------------------------------------------------
     logic [7:0] rx_data;
     logic       rx_valid;
 
+    // tx_data / tx_send driven with hold logic below (see gh-14 5u3.4)
+    logic [7:0] tx_data;
+    logic       tx_send;
+    logic       tx_busy;
+
     SiliconBridge #(
         .CLK_FREQ  (CLK_FREQ),
         .BAUD_RATE (BAUD_RATE)
     ) u_bridge (
         .clk          (clk),
-        .rst_n        (rst_n),
+        .rst_n        (rst),
         .uart_rx_pin  (uart_rx),
         .uart_tx_pin  (uart_tx),
         .rx_data      (rx_data),
         .rx_valid     (rx_valid),
-        .tx_data      (rx_data),
-        .tx_send      (rx_valid),
-        .tx_busy      ()
+        .tx_data      (tx_data),
+        .tx_send      (tx_send),
+        .tx_busy      (tx_busy)
     );
     // gh-14 5u3.2 widths review: synapse variant (no neuron/RAMs); bridge 8b stream only
     // (DATA_WIDTH fixed 8 in SiliconBridge/UARTs; see 5u3.7 for cleanup). No mismatches here.
+
+    // ----------------------------------------------------------------
+    // gh-14 5u3.4 (P1 Copilot 3035925438 on Basys3_Top:46 synapse): tx_send driven
+    // directly by rx_valid without tx_busy check => race/loss during in-flight TX.
+    // Use 1-deep hold buffer for lossless (better than simple gate which may drop
+    // for AER/spike protocol). Buffer any rx while busy, assert send when !busy.
+    // ----------------------------------------------------------------
+    logic [7:0] tx_hold;
+    logic       hold_pending;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            tx_hold      <= '0;
+            hold_pending <= 1'b0;
+            tx_data      <= '0;
+            tx_send      <= 1'b0;
+        end else begin
+            tx_send <= 1'b0;
+            if (rx_valid) begin
+                tx_hold <= rx_data;
+                hold_pending <= 1'b1;
+            end
+            if (hold_pending && !tx_busy) begin
+                tx_data <= tx_hold;
+                tx_send <= 1'b1;
+                hold_pending <= 1'b0;
+            end
+        end
+    end
 
     // ----------------------------------------------------------------
     // Synapse router: pass AER address downstream
@@ -57,7 +95,7 @@ module synapse_demo_basys3_top (
         .NEURON_ADDR_WIDTH (8)
     ) u_router (
         .clk       (clk),
-        .rst_n     (rst_n),
+        .rst_n     (rst),
         .src_addr  (rx_data),
         .src_valid (rx_valid),
         .dst_addr  (routed_addr),
@@ -67,8 +105,8 @@ module synapse_demo_basys3_top (
     // ----------------------------------------------------------------
     // LED output: latch last routed address
     // ----------------------------------------------------------------
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
+    always_ff @(posedge clk or negedge rst) begin
+        if (!rst)
             led <= '0;
         else if (routed_valid)
             led <= {8'b0, routed_addr};
