@@ -44,6 +44,8 @@ module synapse_demo_basys3_top (
         .tx_send      (rx_valid),
         .tx_busy      ()
     );
+    // gh-14 5u3.2 widths review: synapse variant (no neuron/RAMs); bridge 8b stream only
+    // (DATA_WIDTH fixed 8 in SiliconBridge/UARTs; see 5u3.7 for cleanup). No mismatches here.
 
     // ----------------------------------------------------------------
     // Synapse router: pass AER address downstream

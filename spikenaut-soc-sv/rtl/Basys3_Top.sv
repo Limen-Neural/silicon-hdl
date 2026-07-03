@@ -54,6 +54,8 @@ module spikenaut_soc_basys3_top (
         .tx_send      (1'b0),
         .tx_busy      ()
     );
+    // Bridge: 8b UART stream (DATA_WIDTH=8 fixed in SiliconBridge/UARTs per gh-14 5u3.7 cleanup);
+    // top-level DATA_WIDTH=16 / PARAM=16 used only for core (neuron/ram/weights). Widths reviewed.
 
     // ----------------------------------------------------------------
     // Neuron parameter RAM
@@ -90,6 +92,11 @@ module spikenaut_soc_basys3_top (
     // ----------------------------------------------------------------
     // LIF neuron
     // ----------------------------------------------------------------
+    // gh-14 / 5u3.2 (P0): reviewed widths for neuron threshold/leak params
+    // (from NeuronParamRam) + weight + SoC inst site. Explicit casts used.
+    // Note: PARAM_WIDTH for params, DATA_WIDTH for weights/neuron data.
+    // Bridge iface is 8b (see below); DATA_WIDTH=16 here is *not* for UART.
+    // Both variants checked (synapse variant has no neuron/RAMs).
     logic spike_out;
 
     LifNeuron #(
@@ -100,14 +107,16 @@ module spikenaut_soc_basys3_top (
         .rst_n     (rst_n),
         .spike_in  (bridge_rx_valid),
         .weight    (weight_dout),
-        .threshold (npram_dout),
-        .leak      (npram_dout),
+        .threshold (npram_dout[PARAM_WIDTH-1:0]),
+        .leak      (npram_dout[PARAM_WIDTH-1:0]),
         .spike_out (spike_out)
     );
 
     // ----------------------------------------------------------------
     // STDP controller
     // ----------------------------------------------------------------
+    // gh-14 5u3.2: width review at ~109 area (DATA_WIDTH paths to Stdp);
+    // connections match declared widths (no mismatch post-cast review).
     StdpController #(
         .DATA_WIDTH   (DATA_WIDTH),
         .ADDR_WIDTH   (WEIGHT_ADDR_W)

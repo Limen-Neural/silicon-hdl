@@ -27,6 +27,11 @@ module UartRx #(
     logic [2:0]          bit_idx;
     logic [7:0]          shift_reg;
 
+    // 2FF synchronizer for async serial rx (from external UART line).
+    // gh-14 / Greptile comment 3035928747 (P1 Critical): prevents metastability
+    // when sampling into FPGA clk domain. Per beads silicon-hdl-5u3.1.
+    logic                rx_sync_0, rx_sync_1;
+
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state    <= IDLE;
@@ -35,11 +40,17 @@ module UartRx #(
             shift_reg <= '0;
             data     <= '0;
             valid    <= 1'b0;
+            rx_sync_0 <= 1'b1;
+            rx_sync_1 <= 1'b1;
         end else begin
+            // Sync the async rx input (use rx_sync_1 for all logic below).
+            rx_sync_0 <= rx;
+            rx_sync_1 <= rx_sync_0;
+
             valid <= 1'b0;
             case (state)
                 IDLE: begin
-                    if (!rx) begin
+                    if (!rx_sync_1) begin
                         state   <= START;
                         clk_cnt <= '0;
                     end
@@ -56,7 +67,7 @@ module UartRx #(
                 DATA: begin
                     if (clk_cnt == CLKS_PER_BIT - 1) begin
                         clk_cnt            <= '0;
-                        shift_reg[bit_idx] <= rx;
+                        shift_reg[bit_idx] <= rx_sync_1;
                         if (bit_idx == 3'h7) begin
                             state <= STOP;
                         end else begin
