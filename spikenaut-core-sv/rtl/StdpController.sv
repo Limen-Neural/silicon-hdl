@@ -31,8 +31,11 @@ module StdpController #(
         end else begin
             pre_trace  <= pre_spike  ? {WINDOW_WIDTH{1'b1}} : (pre_trace  >> 1);
             post_trace <= post_spike ? {WINDOW_WIDTH{1'b1}} : (post_trace >> 1);
-            // Only assert weight_we when an actual potentiation or depression
-            // occurs — prevents spurious write-backs when traces have decayed.
+            // weight_we asserts only on actual weight change (potentiation or depression).
+            // Old: pre_spike | post_spike (asserted on every spike, even with no weight change).
+            // New: gated by trace activity — prevents spurious write-backs to weight RAM.
+            // Basys3_Top leaves weight_we unconnected; downstream consumers should treat
+            // this as "weight changed" not "spike occurred".
             weight_we       <= (pre_spike && post_trace != '0) ||
                                (post_spike && pre_trace != '0);
             weight_addr_out <= weight_addr;

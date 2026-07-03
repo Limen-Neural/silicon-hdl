@@ -49,6 +49,20 @@ module tb_LifNeuron;
         end
     endtask
 
+    // Overload for multi-bit signals: checks for X/Z in data before
+    // comparison can resolve unknowns to a false positive.
+    task automatic check_data(input logic [DATA_WIDTH-1:0] actual,
+                              input logic [DATA_WIDTH-1:0] expected,
+                              input string msg);
+        if ($isunknown(actual)) begin
+            errors++;
+            $display("FAIL (X/Z in data): %s", msg);
+        end else if (actual !== expected) begin
+            errors++;
+            $display("FAIL: %s (got %0d, expected %0d)", msg, actual, expected);
+        end
+    endtask
+
     initial begin
         // ------------------------------------------------------------
         // Reset
