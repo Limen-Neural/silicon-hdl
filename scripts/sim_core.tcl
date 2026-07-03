@@ -57,16 +57,21 @@ if {[llength [glob -nocomplain [file join $core_tb *.sv]]] > 0} {
 }
 
 # ---------------------------------------------------------------------------
-# 4. Simulation settings
+# 4. Run each unit testbench in turn
 # ---------------------------------------------------------------------------
-set_property top tb_LifNeuron [get_filesets sim_1]
-set_property top_lib xil_defaultlib [get_filesets sim_1]
+set core_tb_tops {tb_LifNeuron tb_WeightRam tb_NeuronParamRam tb_StdpController}
 
-# ---------------------------------------------------------------------------
-# 5. Run simulation
-# ---------------------------------------------------------------------------
-launch_simulation
-run 1us
-close_sim
+foreach tb_top $core_tb_tops {
+    set_property top $tb_top [get_filesets sim_1]
+    set_property top_lib xil_defaultlib [get_filesets sim_1]
+
+    # Force re-elaboration when switching top modules to avoid stale
+    # compilation artifacts / dirty directory issues in the sim fileset.
+    # catch() guards the first iteration where the run may not exist yet.
+    catch {reset_run sim_1}
+    launch_simulation
+    run 10us
+    close_sim
+}
 
 puts "=== sim_core.tcl complete ==="

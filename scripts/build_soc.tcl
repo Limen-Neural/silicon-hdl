@@ -1,5 +1,5 @@
 # build_soc.tcl
-# Vivado build script for the Spikenaut SoC targeting Basys 3
+# Vivado build script for the SoC targeting Basys 3
 #
 # Library ownership (compile order matters):
 #   lib_bridge  <- spikenaut-bridge-sv/rtl
