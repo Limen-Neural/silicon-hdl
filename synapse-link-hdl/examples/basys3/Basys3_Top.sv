@@ -65,8 +65,8 @@ module synapse_demo_basys3_top (
     logic [7:0] tx_hold;
     logic       hold_pending;
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk or negedge rst) begin
+        if (!rst) begin
             tx_hold      <= '0;
             hold_pending <= 1'b0;
             tx_data      <= '0;
