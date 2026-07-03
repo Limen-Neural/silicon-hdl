@@ -1,0 +1,10 @@
+# Beads internal state (contains hardcoded local paths)
+.beads/embeddeddolt/
+.beads/backup/
+.beads/.local_version
+.beads/export-state.json
+.beads/last-touched
+.beads/issues.jsonl
+
+# Keep hooks tracked
+!.beads/hooks/
