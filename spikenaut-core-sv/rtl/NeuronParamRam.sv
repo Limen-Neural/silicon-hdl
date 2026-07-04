@@ -19,7 +19,10 @@ module NeuronParamRam #(
 
     (* ram_style = "block" *) logic [PARAM_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    // Synchronous reset on dout to allow Xilinx BRAM inference (async reset on
+    // the output register prevents mapping to dedicated Block RAM resources).
+    // gh-14 / Codacy / Gemini / Devin review threads on async reset.
+    always_ff @(posedge clk) begin
         if (!rst_n) begin
             dout <= '0;
         end else begin

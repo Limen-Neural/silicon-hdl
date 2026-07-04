@@ -13,6 +13,7 @@ module tb_NeuronParamRam;
     localparam int CLK_PERIOD  = 10;
 
     logic                    clk;
+    logic                    rst_n;
     logic                    we;
     logic [ADDR_WIDTH-1:0]   addr;
     logic [PARAM_WIDTH-1:0]  din;
@@ -25,6 +26,7 @@ module tb_NeuronParamRam;
         .PARAM_WIDTH (PARAM_WIDTH)
     ) dut (
         .clk  (clk),
+        .rst_n (rst_n),
         .we   (we),
         .addr (addr),
         .din  (din),
@@ -59,9 +61,12 @@ module tb_NeuronParamRam;
     endtask
 
     initial begin
+        rst_n = 1'b0;
         we   = 1'b0;
         addr = '0;
         din  = '0;
+        @(negedge clk);
+        rst_n = 1'b1;
         @(negedge clk);
 
         // Write threshold value to address 3
