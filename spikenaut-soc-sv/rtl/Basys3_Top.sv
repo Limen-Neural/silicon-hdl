@@ -67,18 +67,33 @@ module spikenaut_soc_basys3_top (
     // ----------------------------------------------------------------
     // Neuron parameter RAM
     // ----------------------------------------------------------------
-    logic [PARAM_WIDTH-1:0] npram_dout;
+    // Per NeuronParamRam contract (gh-14 5u3.6/5u3.7): stores ONE param per addr.
+    // Multiple param types (threshold/leak) require separate RAM instances.
+    logic [PARAM_WIDTH-1:0] threshold_param;
+    logic [PARAM_WIDTH-1:0] leak_param;
 
     NeuronParamRam #(
         .ADDR_WIDTH  (NEURON_ADDR_W),
         .PARAM_WIDTH (PARAM_WIDTH)
-    ) u_npram (
+    ) u_npram_threshold (
         .clk  (clk),
         .rst_n (rst),
         .we   (1'b0),
         .addr ('0),
         .din  ('0),
-        .dout (npram_dout)
+        .dout (threshold_param)
+    );
+
+    NeuronParamRam #(
+        .ADDR_WIDTH  (NEURON_ADDR_W),
+        .PARAM_WIDTH (PARAM_WIDTH)
+    ) u_npram_leak (
+        .clk  (clk),
+        .rst_n (rst),
+        .we   (1'b0),
+        .addr ('0),
+        .din  ('0),
+        .dout (leak_param)
     );
 
     // ----------------------------------------------------------------
@@ -102,10 +117,11 @@ module spikenaut_soc_basys3_top (
     // LIF neuron
     // ----------------------------------------------------------------
     // gh-14 / 5u3.2 (P0): reviewed widths for neuron threshold/leak params
-    // (from NeuronParamRam) + weight + SoC inst site. Explicit casts used.
+    // (from NeuronParamRam) + weight + SoC inst site.
     // Note: PARAM_WIDTH for params, DATA_WIDTH for weights/neuron data.
     // Bridge iface is 8b (see below); DATA_WIDTH=16 here is *not* for UART.
     // Both variants checked (synapse variant has no neuron/RAMs).
+    // Threshold and leak sourced from separate NeuronParamRam instances per contract.
     logic spike_out;
 
     LifNeuron #(
@@ -116,8 +132,8 @@ module spikenaut_soc_basys3_top (
         .rst_n     (rst),
         .spike_in  (bridge_rx_valid),
         .weight    (weight_dout),
-        .threshold (npram_dout[PARAM_WIDTH-1:0]),
-        .leak      (npram_dout[PARAM_WIDTH-1:0]),
+        .threshold (threshold_param),
+        .leak      (leak_param),
         .spike_out (spike_out)
     );
 
