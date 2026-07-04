@@ -34,7 +34,7 @@ module synapse_demo_basys3_top (
     logic [7:0] rx_data;
     logic       rx_valid;
 
-    // tx_data / tx_send driven with hold logic below (see gh-14 5u3.4)
+    // tx_data / tx_send driven with FIFO logic below (see gh-14 5u3.4)
     logic [7:0] tx_data;
     logic       tx_send;
     logic       tx_busy;
@@ -59,28 +59,56 @@ module synapse_demo_basys3_top (
     // ----------------------------------------------------------------
     // gh-14 5u3.4 (P1 Copilot 3035925438 on Basys3_Top:46 synapse): tx_send driven
     // directly by rx_valid without tx_busy check => race/loss during in-flight TX.
-    // Use 1-deep hold buffer for lossless (better than simple gate which may drop
-    // for AER/spike protocol). Buffer any rx while busy, assert send when !busy.
+    // Use a small FIFO so received bytes cannot overwrite an older pending byte.
+    // tx_send is a one-clock pulse issued only when the UART transmitter is idle.
+    // If the FIFO fills, preserve queued bytes and count dropped arrivals explicitly.
     // ----------------------------------------------------------------
-    logic [7:0] tx_hold;
-    logic       hold_pending;
+    localparam int TX_FIFO_DEPTH = 4;
+    localparam int TX_FIFO_PTR_W = $clog2(TX_FIFO_DEPTH);
+    localparam logic [TX_FIFO_PTR_W:0] TX_FIFO_DEPTH_COUNT = TX_FIFO_DEPTH;
+
+    logic [7:0]                 tx_fifo [TX_FIFO_DEPTH];
+    logic [TX_FIFO_PTR_W-1:0]   tx_fifo_wr_ptr;
+    logic [TX_FIFO_PTR_W-1:0]   tx_fifo_rd_ptr;
+    logic [TX_FIFO_PTR_W:0]     tx_fifo_count;
+    logic [15:0]                tx_fifo_drop_count;
+
+    wire tx_fifo_empty = (tx_fifo_count == '0);
+    wire tx_fifo_full  = (tx_fifo_count == TX_FIFO_DEPTH_COUNT);
+    wire tx_fifo_deq   = !tx_fifo_empty && !tx_busy;
+    wire tx_fifo_enq   = rx_valid && (!tx_fifo_full || tx_fifo_deq);
+    wire tx_fifo_drop  = rx_valid && tx_fifo_full && !tx_fifo_deq;
 
     always_ff @(posedge clk or negedge rst) begin
         if (!rst) begin
-            tx_hold      <= '0;
-            hold_pending <= 1'b0;
-            tx_data      <= '0;
-            tx_send      <= 1'b0;
+            tx_fifo_wr_ptr     <= '0;
+            tx_fifo_rd_ptr     <= '0;
+            tx_fifo_count      <= '0;
+            tx_fifo_drop_count <= '0;
+            tx_data            <= '0;
+            tx_send            <= 1'b0;
         end else begin
             tx_send <= 1'b0;
-            if (rx_valid) begin
-                tx_hold <= rx_data;
-                hold_pending <= 1'b1;
+
+            if (tx_fifo_enq) begin
+                tx_fifo[tx_fifo_wr_ptr] <= rx_data;
+                tx_fifo_wr_ptr          <= tx_fifo_wr_ptr + 1'b1;
             end
-            if (hold_pending && !tx_busy) begin
-                tx_data <= tx_hold;
-                tx_send <= 1'b1;
-                hold_pending <= 1'b0;
+
+            if (tx_fifo_deq) begin
+                tx_data        <= tx_fifo[tx_fifo_rd_ptr];
+                tx_send        <= 1'b1;
+                tx_fifo_rd_ptr <= tx_fifo_rd_ptr + 1'b1;
+            end
+
+            unique case ({tx_fifo_enq, tx_fifo_deq})
+                2'b10: tx_fifo_count <= tx_fifo_count + 1'b1;
+                2'b01: tx_fifo_count <= tx_fifo_count - 1'b1;
+                default: tx_fifo_count <= tx_fifo_count;
+            endcase
+
+            if (tx_fifo_drop) begin
+                tx_fifo_drop_count <= tx_fifo_drop_count + 1'b1;
             end
         end
     end
