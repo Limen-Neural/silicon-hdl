@@ -21,17 +21,17 @@ module WeightRam #(
 
     (* ram_style = "block" *) logic [DATA_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
-    // Use synchronous reset on dout so the rst_n port is connected to logic (avoids
-    // synthesis "unused port" warnings) while still providing known value after reset
-    // for simulation. Sync reset is more BRAM-friendly than async.
-    // See gh-14 5u3.6 and Devin review on dead rst_n port.
+    // Synchronous reset on dout (to use rst_n port and provide known value in sim).
+    // Read-first semantics preserved (original contract): on write cycle, dout gets
+    // old mem value. gh-14 5u3.6 + Devin feedback on semantics change and unused port.
+    // Note: BRAM inference with sync reset on output depends on Vivado settings;
+    // attribute is a hint.
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             dout <= '0;
-        end else if (we) begin
-            mem[addr] <= din;
-            dout <= din;  // optional forward
         end else begin
+            if (we)
+                mem[addr] <= din;
             dout <= mem[addr];
         end
     end

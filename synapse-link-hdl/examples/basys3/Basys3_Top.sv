@@ -61,26 +61,28 @@ module synapse_demo_basys3_top (
     // skid/hold buffer. Prevents overwrite of in-flight byte. For burst, last pending
     // is kept (demo rate is low). Addressed Devin/Gemini loss/stale/enq-full races by
     // using explicit skid_valid instead of pointer math.
+    // Also addresses Devin one-cycle tx_busy latency race with send_pending.
     // ----------------------------------------------------------------
     logic [7:0] tx_hold;
     logic       hold_valid;
+    logic       send_pending;
 
     always_ff @(posedge clk or negedge rst) begin
         if (!rst) begin
-            tx_hold    <= '0;
-            hold_valid <= 1'b0;
-            tx_data    <= '0;
-            tx_send    <= 1'b0;
+            tx_hold      <= '0;
+            hold_valid   <= 1'b0;
+            tx_data      <= '0;
+            tx_send      <= 1'b0;
+            send_pending <= 1'b0;
         end else begin
             tx_send <= 1'b0;
+            send_pending <= tx_send;
 
-            if (!tx_busy) begin
+            if (!tx_busy && !send_pending) begin
                 if (hold_valid) begin
                     tx_data    <= tx_hold;
                     tx_send    <= 1'b1;
                     hold_valid <= 1'b0;
-                    // If new data arrived in the same cycle we are sending the hold,
-                    // immediately buffer it to avoid the one-cycle gap loss (Devin race).
                     if (rx_valid) begin
                         tx_hold    <= rx_data;
                         hold_valid <= 1'b1;
@@ -90,7 +92,7 @@ module synapse_demo_basys3_top (
                     tx_send <= 1'b1;
                 end
             end else if (rx_valid) begin
-                // while busy, buffer the latest (overwrite if already holding)
+                // while busy or pending, buffer the latest
                 tx_hold    <= rx_data;
                 hold_valid <= 1'b1;
             end

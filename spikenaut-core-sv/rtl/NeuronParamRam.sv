@@ -19,16 +19,17 @@ module NeuronParamRam #(
 
     (* ram_style = "block" *) logic [PARAM_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
-    // Use synchronous reset on dout so the rst_n port is connected to logic (avoids
-    // synthesis "unused port" warnings per Devin). Provides known '0 after reset in sim.
-    // BRAM inference should still work with sync reset.
+    // Synchronous reset on dout (to use rst_n port and provide known value in sim).
+    // Read-first semantics preserved (original contract): on write cycle, dout gets
+    // old mem value. gh-14 5u3.6 + Devin feedback on semantics change and unused port.
+    // Note: BRAM inference with sync reset on output depends on Vivado settings;
+    // attribute is a hint.
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             dout <= '0;
-        end else if (we) begin
-            mem[addr] <= din;
-            dout <= din;
         end else begin
+            if (we)
+                mem[addr] <= din;
             dout <= mem[addr];
         end
     end
