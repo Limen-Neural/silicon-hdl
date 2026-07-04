@@ -19,13 +19,18 @@ module NeuronParamRam #(
 
     (* ram_style = "block" *) logic [PARAM_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
-    // No reset on dout to allow dedicated BRAM inference in Xilinx Vivado.
-    // (reset on output reg often forces distributed RAM/LUTs instead of BRAM).
-    // gh-14 + Codacy/Gemini/Devin BRAM threads. See tops for post-reset behavior notes.
+    // Use synchronous reset on dout so the rst_n port is connected to logic (avoids
+    // synthesis "unused port" warnings per Devin). Provides known '0 after reset in sim.
+    // BRAM inference should still work with sync reset.
     always_ff @(posedge clk) begin
-        if (we)
+        if (!rst_n) begin
+            dout <= '0;
+        end else if (we) begin
             mem[addr] <= din;
-        dout <= mem[addr];
+            dout <= din;
+        end else begin
+            dout <= mem[addr];
+        end
     end
 
 endmodule

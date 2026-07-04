@@ -69,6 +69,8 @@ module spikenaut_soc_basys3_top (
     // ----------------------------------------------------------------
     // Per NeuronParamRam contract (gh-14 5u3.6/5u3.7): stores ONE param per addr.
     // Multiple param types (threshold/leak) require separate RAM instances.
+    // Note (Devin): both instances currently uninitialized (we=0, addr=0) -- content
+    // is undefined until a host load path writes them (out of scope for gh-14).
     logic [PARAM_WIDTH-1:0] threshold_param;
     logic [PARAM_WIDTH-1:0] leak_param;
 

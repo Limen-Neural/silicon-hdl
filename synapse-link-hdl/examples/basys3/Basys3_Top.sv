@@ -79,6 +79,12 @@ module synapse_demo_basys3_top (
                     tx_data    <= tx_hold;
                     tx_send    <= 1'b1;
                     hold_valid <= 1'b0;
+                    // If new data arrived in the same cycle we are sending the hold,
+                    // immediately buffer it to avoid the one-cycle gap loss (Devin race).
+                    if (rx_valid) begin
+                        tx_hold    <= rx_data;
+                        hold_valid <= 1'b1;
+                    end
                 end else if (rx_valid) begin
                     tx_data <= rx_data;
                     tx_send <= 1'b1;
