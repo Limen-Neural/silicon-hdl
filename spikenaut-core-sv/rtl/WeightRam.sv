@@ -30,6 +30,5 @@ module WeightRam #(
             dout <= mem[addr];
         end
     end
-    end
 
 endmodule
