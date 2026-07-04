@@ -21,7 +21,7 @@ module WeightRam #(
 
     (* ram_style = "block" *) logic [DATA_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge clk) begin
         if (!rst_n) begin
             dout <= '0;
         end else begin
@@ -29,6 +29,7 @@ module WeightRam #(
                 mem[addr] <= din;
             dout <= mem[addr];
         end
+    end
     end
 
 endmodule
