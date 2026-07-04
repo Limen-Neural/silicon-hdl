@@ -162,7 +162,7 @@ module spikenaut_soc_basys3_top (
     // ----------------------------------------------------------------
     // LED output
     // ----------------------------------------------------------------
-    always_ff @(posedge clk or negedge rst) begin
+    always_ff @(posedge clk) begin
         if (!rst)
             led <= '0;
         else

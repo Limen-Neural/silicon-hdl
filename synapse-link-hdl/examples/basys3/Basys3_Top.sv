@@ -67,7 +67,7 @@ module synapse_demo_basys3_top (
     logic       hold_valid;
     logic       send_pending;
 
-    always_ff @(posedge clk or negedge rst) begin
+    always_ff @(posedge clk) begin
         if (!rst) begin
             tx_hold      <= '0;
             hold_valid   <= 1'b0;
@@ -119,7 +119,7 @@ module synapse_demo_basys3_top (
     // ----------------------------------------------------------------
     // LED output: latch last routed address
     // ----------------------------------------------------------------
-    always_ff @(posedge clk or negedge rst) begin
+    always_ff @(posedge clk) begin
         if (!rst)
             led <= '0;
         else if (routed_valid)
