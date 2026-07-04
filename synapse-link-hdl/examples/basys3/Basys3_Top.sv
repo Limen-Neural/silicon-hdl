@@ -75,13 +75,21 @@ module synapse_demo_basys3_top (
             tx_send      <= 1'b0;
             send_pending <= 1'b0;
         end else begin
+            // Fixed skid launch + pending tracking (Cursor high-sev "drops back-to-back"):
+            // Use explicit sent_now decision var so send_pending correctly becomes 1
+            // *next* cycle after a tx_send (covers registered tx_busy latency in UartTx).
+            // Old `send_pending <= tx_send;` sampled pre-update value and failed to
+            // protect the cycle immediately after launch, allowing premature re-issue.
+            logic sent_now;
+            sent_now = 1'b0;
+
             tx_send <= 1'b0;
-            send_pending <= tx_send;
 
             if (!tx_busy && !send_pending) begin
                 if (hold_valid) begin
                     tx_data    <= tx_hold;
                     tx_send    <= 1'b1;
+                    sent_now   = 1'b1;
                     hold_valid <= 1'b0;
                     if (rx_valid) begin
                         tx_hold    <= rx_data;
@@ -90,12 +98,15 @@ module synapse_demo_basys3_top (
                 end else if (rx_valid) begin
                     tx_data <= rx_data;
                     tx_send <= 1'b1;
+                    sent_now = 1'b1;
                 end
             end else if (rx_valid) begin
-                // while busy or pending, buffer the latest
+                // while busy or pending, buffer the latest (demo keeps last only)
                 tx_hold    <= rx_data;
                 hold_valid <= 1'b1;
             end
+
+            send_pending <= sent_now;
         end
     end
 
