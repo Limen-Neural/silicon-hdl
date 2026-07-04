@@ -13,7 +13,7 @@
 
 module synapse_demo_basys3_top (
     input  logic        clk,       // 100 MHz on-board oscillator
-    input  logic        rst_n,     // Active-low reset (CPU_RESET button)
+    input  logic        rst_n,     // Physically active-high button (U18/BTNC/CPU_RESET); inverted below to rst (active-low) for internal use per gh-14 5u3.5 polarity fix. XDC ties directly to this port name.
     // UART
     input  logic        uart_rx,
     output logic        uart_tx,
@@ -24,26 +24,91 @@ module synapse_demo_basys3_top (
     localparam int CLK_FREQ  = 100_000_000;
     localparam int BAUD_RATE = 115_200;
 
+    // gh-14 5u3.5: inversion in RTL (XDC pin/port rst_n kept; BTNC active-high button).
+    logic rst;
+    assign rst = ~rst_n;
+
     // ----------------------------------------------------------------
     // Bridge: UART <-> internal byte stream
     // ----------------------------------------------------------------
     logic [7:0] rx_data;
     logic       rx_valid;
 
+    // tx_data / tx_send driven with FIFO logic below (see gh-14 5u3.4)
+    logic [7:0] tx_data;
+    logic       tx_send;
+    logic       tx_busy;
+
     SiliconBridge #(
         .CLK_FREQ  (CLK_FREQ),
         .BAUD_RATE (BAUD_RATE)
     ) u_bridge (
         .clk          (clk),
-        .rst_n        (rst_n),
+        .rst_n        (rst),
         .uart_rx_pin  (uart_rx),
         .uart_tx_pin  (uart_tx),
         .rx_data      (rx_data),
         .rx_valid     (rx_valid),
-        .tx_data      (rx_data),
-        .tx_send      (rx_valid),
-        .tx_busy      ()
+        .tx_data      (tx_data),
+        .tx_send      (tx_send),
+        .tx_busy      (tx_busy)
     );
+    // gh-14 5u3.2 widths review: synapse variant (no neuron/RAMs); bridge 8b stream only
+    // (DATA_WIDTH fixed 8 in SiliconBridge/UARTs; see 5u3.7 for cleanup). No mismatches here.
+
+    // ----------------------------------------------------------------
+    // gh-14 5u3.4 (P1 Copilot 3035925438): defer tx_send while tx_busy using a
+    // skid/hold buffer. Prevents overwrite of in-flight byte. For burst, last pending
+    // is kept (demo rate is low). Addressed Devin/Gemini loss/stale/enq-full races by
+    // using explicit skid_valid instead of pointer math.
+    // Also addresses Devin one-cycle tx_busy latency race with send_pending.
+    // ----------------------------------------------------------------
+    logic [7:0] tx_hold;
+    logic       hold_valid;
+    logic       send_pending;
+
+    always_ff @(posedge clk) begin
+        if (!rst) begin
+            tx_hold      <= '0;
+            hold_valid   <= 1'b0;
+            tx_data      <= '0;
+            tx_send      <= 1'b0;
+            send_pending <= 1'b0;
+        end else begin
+            // Fixed skid launch + pending tracking (Cursor high-sev "drops back-to-back"):
+            // Use explicit sent_now decision var so send_pending correctly becomes 1
+            // *next* cycle after a tx_send (covers registered tx_busy latency in UartTx).
+            // Old `send_pending <= tx_send;` sampled pre-update value and failed to
+            // protect the cycle immediately after launch, allowing premature re-issue.
+            logic sent_now;
+            sent_now = 1'b0;
+
+            tx_send <= 1'b0;
+
+            if (!tx_busy && !send_pending) begin
+                if (hold_valid) begin
+                    tx_data    <= tx_hold;
+                    tx_send    <= 1'b1;
+                    sent_now   = 1'b1;
+                    hold_valid <= 1'b0;
+                    if (rx_valid) begin
+                        tx_hold    <= rx_data;
+                        hold_valid <= 1'b1;
+                    end
+                end else if (rx_valid) begin
+                    tx_data <= rx_data;
+                    tx_send <= 1'b1;
+                    sent_now = 1'b1;
+                end
+            end else if (rx_valid) begin
+                // while busy or pending, buffer the latest (demo keeps last only)
+                tx_hold    <= rx_data;
+                hold_valid <= 1'b1;
+            end
+
+            send_pending <= sent_now;
+        end
+    end
 
     // ----------------------------------------------------------------
     // Synapse router: pass AER address downstream
@@ -55,7 +120,7 @@ module synapse_demo_basys3_top (
         .NEURON_ADDR_WIDTH (8)
     ) u_router (
         .clk       (clk),
-        .rst_n     (rst_n),
+        .rst_n     (rst),
         .src_addr  (rx_data),
         .src_valid (rx_valid),
         .dst_addr  (routed_addr),
@@ -65,8 +130,8 @@ module synapse_demo_basys3_top (
     // ----------------------------------------------------------------
     // LED output: latch last routed address
     // ----------------------------------------------------------------
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
+    always_ff @(posedge clk) begin
+        if (!rst)
             led <= '0;
         else if (routed_valid)
             led <= {8'b0, routed_addr};

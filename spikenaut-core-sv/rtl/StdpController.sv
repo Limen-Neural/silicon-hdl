@@ -21,7 +21,7 @@ module StdpController #(
     logic [WINDOW_WIDTH-1:0] pre_trace;
     logic [WINDOW_WIDTH-1:0] post_trace;
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge clk) begin
         if (!rst_n) begin
             pre_trace       <= '0;
             post_trace      <= '0;

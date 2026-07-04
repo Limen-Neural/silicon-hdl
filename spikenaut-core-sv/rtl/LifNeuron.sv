@@ -27,7 +27,7 @@ module LifNeuron #(
                    PARAM_WIDTH, DATA_WIDTH);
     endgenerate
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge clk) begin
         if (!rst_n) begin
             membrane_potential <= '0;
             spike_out          <= 1'b0;
