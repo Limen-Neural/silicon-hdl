@@ -21,14 +21,14 @@ module WeightRam #(
 
     (* ram_style = "block" *) logic [DATA_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
+    // No reset on dout to allow dedicated BRAM inference in Xilinx Vivado.
+    // (async or even sync reset on the output register often forces LUT/distributed RAM).
+    // gh-14 + Codacy/Gemini/Devin BRAM threads. Reset behavior for sim can be
+    // handled by explicit preload or by not relying on dout value until after host load.
     always_ff @(posedge clk) begin
-        if (!rst_n) begin
-            dout <= '0;
-        end else begin
-            if (we)
-                mem[addr] <= din;
-            dout <= mem[addr];
-        end
+        if (we)
+            mem[addr] <= din;
+        dout <= mem[addr];
     end
 
 endmodule

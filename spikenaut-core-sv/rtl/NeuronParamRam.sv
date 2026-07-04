@@ -19,17 +19,13 @@ module NeuronParamRam #(
 
     (* ram_style = "block" *) logic [PARAM_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
-    // Synchronous reset on dout to allow Xilinx BRAM inference (async reset on
-    // the output register prevents mapping to dedicated Block RAM resources).
-    // gh-14 / Codacy / Gemini / Devin review threads on async reset.
+    // No reset on dout to allow dedicated BRAM inference in Xilinx Vivado.
+    // (reset on output reg often forces distributed RAM/LUTs instead of BRAM).
+    // gh-14 + Codacy/Gemini/Devin BRAM threads. See tops for post-reset behavior notes.
     always_ff @(posedge clk) begin
-        if (!rst_n) begin
-            dout <= '0;
-        end else begin
-            if (we)
-                mem[addr] <= din;
-            dout <= mem[addr];
-        end
+        if (we)
+            mem[addr] <= din;
+        dout <= mem[addr];
     end
 
 endmodule
