@@ -16,7 +16,7 @@
 
 module spikenaut_soc_basys3_top (
     input  logic        clk,       // 100 MHz on-board oscillator
-    input  logic        rst_n,     // Active-low reset (CPU_RESET button)
+    input  logic        rst_n,     // Physically active-high button (U18/BTNC/CPU_RESET); inverted to rst (active-low) internally per gh-14 5u3.5. XDC port name kept for compatibility.
     // UART
     input  logic        uart_rx,
     output logic        uart_tx,

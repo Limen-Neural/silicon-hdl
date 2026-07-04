@@ -13,7 +13,7 @@
 
 module synapse_demo_basys3_top (
     input  logic        clk,       // 100 MHz on-board oscillator
-    input  logic        rst_n,     // Active-low reset (CPU_RESET button)
+    input  logic        rst_n,     // Physically active-high button (U18/BTNC/CPU_RESET); inverted below to rst (active-low) for internal use per gh-14 5u3.5 polarity fix. XDC ties directly to this port name.
     // UART
     input  logic        uart_rx,
     output logic        uart_tx,
