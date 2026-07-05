@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install Verilator
         run: sudo apt-get update && sudo apt-get install -y verilator
@@ -23,12 +25,17 @@ jobs:
       - name: Run tb_LifNeuron
         run: |
           rm -rf obj_dir
+          # Compile then execute as separate commands for clearer failure attribution
+          # (addresses review feedback on && chaining). GitHub Actions uses set -e.
+          # The -Wno-* flags match the original implementation notes in issue #9
+          # and are required for clean compilation of the existing testbenches
+          # (timescales, intentional width handling, module/filename conventions).
           verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
             --top-module tb_LifNeuron \
             -Ispikenaut-core-sv/rtl \
             spikenaut-core-sv/rtl/LifNeuron.sv \
-            spikenaut-core-sv/tb/tb_LifNeuron.sv \
-            && ./obj_dir/Vtb_LifNeuron
+            spikenaut-core-sv/tb/tb_LifNeuron.sv
+          ./obj_dir/Vtb_LifNeuron
 
       - name: Run tb_WeightRam
         run: |
@@ -37,8 +44,8 @@ jobs:
             --top-module tb_WeightRam \
             -Ispikenaut-core-sv/rtl \
             spikenaut-core-sv/rtl/WeightRam.sv \
-            spikenaut-core-sv/tb/tb_WeightRam.sv \
-            && ./obj_dir/Vtb_WeightRam
+            spikenaut-core-sv/tb/tb_WeightRam.sv
+          ./obj_dir/Vtb_WeightRam
 
       - name: Run tb_NeuronParamRam
         run: |
@@ -47,5 +54,5 @@ jobs:
             --top-module tb_NeuronParamRam \
             -Ispikenaut-core-sv/rtl \
             spikenaut-core-sv/rtl/NeuronParamRam.sv \
-            spikenaut-core-sv/tb/tb_NeuronParamRam.sv \
-            && ./obj_dir/Vtb_NeuronParamRam
+            spikenaut-core-sv/tb/tb_NeuronParamRam.sv
+          ./obj_dir/Vtb_NeuronParamRam
