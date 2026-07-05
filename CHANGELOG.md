@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - README updated with license badge and standard dual-license section.
   - CHANGELOG introduced.
 - Verilator CI for core RTL unit testbenches on GitHub-hosted runners (addresses #9).
-  - `.github/workflows/sim.yml` created; runs `tb_LifNeuron`, `tb_WeightRam`, and `tb_NeuronParamRam` via Verilator on every `push` and `pull_request`.
+  - `.github/workflows/sim.yml` created; runs `tb_LifNeuron`, `tb_WeightRam`, and `tb_NeuronParamRam` via Verilator on `push` (to `main`) and `pull_request`.
   - Uses explicit steps for the three testbenches; `rm -rf obj_dir` isolation + exact flags from issue notes (validated locally and matches PR #11 `$fatal` hardening).
   - Free CI (no Vivado license). Out-of-scope items tracked in #12 and #13.
 
