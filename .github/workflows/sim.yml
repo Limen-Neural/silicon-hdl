@@ -11,22 +11,38 @@ on: [push, pull_request]
 jobs:
   verilator:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        tb: [tb_LifNeuron, tb_WeightRam, tb_NeuronParamRam]
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Verilator
         run: sudo apt-get update && sudo apt-get install -y verilator
 
-      - name: Run ${{ matrix.tb }}
+      - name: Run tb_LifNeuron
         run: |
           rm -rf obj_dir
           verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
-            --top-module ${{ matrix.tb }} \
+            --top-module tb_LifNeuron \
             -Ispikenaut-core-sv/rtl \
-            spikenaut-core-sv/rtl/${{ matrix.tb }}.sv \
-            spikenaut-core-sv/tb/${{ matrix.tb }}.sv \
-            && ./obj_dir/V${{ matrix.tb }}
+            spikenaut-core-sv/rtl/LifNeuron.sv \
+            spikenaut-core-sv/tb/tb_LifNeuron.sv \
+            && ./obj_dir/Vtb_LifNeuron
+
+      - name: Run tb_WeightRam
+        run: |
+          rm -rf obj_dir
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module tb_WeightRam \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/WeightRam.sv \
+            spikenaut-core-sv/tb/tb_WeightRam.sv \
+            && ./obj_dir/Vtb_WeightRam
+
+      - name: Run tb_NeuronParamRam
+        run: |
+          rm -rf obj_dir
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module tb_NeuronParamRam \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/NeuronParamRam.sv \
+            spikenaut-core-sv/tb/tb_NeuronParamRam.sv \
+            && ./obj_dir/Vtb_NeuronParamRam
