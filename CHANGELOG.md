@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Dual MIT / Apache-2.0 licensing for maximum adoption in research and commercial hardware (addresses #6).
   - `LICENSE-MIT` and `LICENSE-APACHE-2.0` added at repository root.
   - SPDX-License-Identifier headers (`MIT OR Apache-2.0`) added to all `.sv`, `.tcl`, `.xdc`, and documentation sources.
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CHANGELOG introduced.
 
 ### Changed
+
 - No behavioral or interface changes. Pure licensing and documentation update.
 
-See also the org master tracker: https://github.com/Limen-Neural/neuromod/issues/19
+See also the org master tracker: <https://github.com/Limen-Neural/neuromod/issues/19>
