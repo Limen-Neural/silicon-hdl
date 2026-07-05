@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // Basys3_Top.sv
 // Canonical source: synapse-link-hdl/examples/basys3
 //

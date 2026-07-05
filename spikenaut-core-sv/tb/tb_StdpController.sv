@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // tb_StdpController.sv
 // Unit testbench for spikenaut-core-sv/rtl/StdpController.sv
 //

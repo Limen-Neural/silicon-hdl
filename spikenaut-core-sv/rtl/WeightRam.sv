@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // WeightRam.sv
 // Canonical source: spikenaut-core-sv/rtl
 // Synaptic weight RAM – single-port, synchronous read/write

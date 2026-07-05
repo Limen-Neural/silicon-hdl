@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // tb_WeightRam.sv
 // Unit testbench for spikenaut-core-sv/rtl/WeightRam.sv
 //

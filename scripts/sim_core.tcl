@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 # sim_core.tcl
 # Vivado simulation script for spikenaut-core-sv unit testbenches
 #

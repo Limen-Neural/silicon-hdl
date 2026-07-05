@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // Basys3_Top.sv
 // Canonical source: spikenaut-soc-sv/rtl
 //

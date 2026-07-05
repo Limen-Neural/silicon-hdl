@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // SynapseRouter.sv
 // Canonical source: synapse-link-hdl/src
 // Address-event representation (AER) synapse router

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 # build_soc.tcl
 # Vivado build script for the SoC targeting Basys 3
 #
