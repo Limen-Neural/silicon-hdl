@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# .github/workflows/sim.yml
+# Verilator simulation for spikenaut-core-sv unit testbenches.
+# Addresses issue #9: runs on push/PR using free GitHub-hosted runners.
+# See also: scripts/sim_core.tcl (Vivado equivalent), PR #11 (testbench $fatal hardening).
+
+name: RTL Simulation
+
+on: [push, pull_request]
+
+jobs:
+  verilator:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tb: [tb_LifNeuron, tb_WeightRam, tb_NeuronParamRam]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y verilator
+
+      - name: Run ${{ matrix.tb }}
+        run: |
+          rm -rf obj_dir
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module ${{ matrix.tb }} \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/${{ matrix.tb }}.sv \
+            spikenaut-core-sv/tb/${{ matrix.tb }}.sv \
+            && ./obj_dir/V${{ matrix.tb }}
