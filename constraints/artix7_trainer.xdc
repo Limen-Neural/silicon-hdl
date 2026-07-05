@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 # artix7_trainer.xdc
 # Physical constraints for a generic Artix-7 trainer board
 # Adjust PACKAGE_PIN assignments to match your specific board

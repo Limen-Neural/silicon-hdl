@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // NeuronParamRam.sv
 // Canonical source: spikenaut-core-sv/rtl
 // Per-neuron parameter RAM (single value per address, e.g. threshold or leak for a neuron).

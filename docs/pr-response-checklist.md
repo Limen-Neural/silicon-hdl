@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 # PR response checklist for `gh-14` / `5u3.x` bot threads
 
 Use this checklist when replying to the PR review.  It maps each known bot/review

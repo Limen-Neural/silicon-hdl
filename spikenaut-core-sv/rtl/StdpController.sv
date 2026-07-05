@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // StdpController.sv
 // Canonical source: spikenaut-core-sv/rtl
 // Spike-Timing-Dependent Plasticity controller

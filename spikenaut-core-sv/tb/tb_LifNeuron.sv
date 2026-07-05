@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // tb_LifNeuron.sv
 // Unit testbench for spikenaut-core-sv/rtl/LifNeuron.sv
 //

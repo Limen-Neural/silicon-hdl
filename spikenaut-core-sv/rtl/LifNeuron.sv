@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // LifNeuron.sv
 // Canonical source: spikenaut-core-sv/rtl
 // Leaky Integrate-and-Fire neuron model

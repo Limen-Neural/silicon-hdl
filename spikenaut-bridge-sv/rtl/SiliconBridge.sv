@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // SiliconBridge.sv
 // Canonical source: spikenaut-bridge-sv/rtl
 // Top-level bridge: wraps UartRx and UartTx for spike-stream transport

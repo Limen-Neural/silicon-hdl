@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 # basys3.xdc
 # Physical constraints for the Digilent Basys 3 (Artix-7 XC7A35T-1CPG236C)
 # Used by: spikenaut_soc_basys3_top, synapse_demo_basys3_top

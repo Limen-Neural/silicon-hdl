@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // UartTx.sv
 // Canonical source: spikenaut-bridge-sv/rtl
 // UART transmitter
