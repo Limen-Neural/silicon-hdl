@@ -24,6 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- No behavioral or interface changes. Pure licensing and documentation update.
+- No behavioral or interface changes to RTL or modules.
 
 See also the org master tracker: <https://github.com/Limen-Neural/neuromod/issues/19>
