@@ -72,7 +72,8 @@ def build_protected_and_locations(files: List[Path]) -> tuple[set, Dict[str, Lis
         if canonical_str and modules:
             for m in modules:
                 protected.add(m)
-        for m in MODULE_RE.finditer(text):
+        for m in modules:
+            locs[m].append(f)
             locs[m.group(1)].append(f)
     return protected, locs
 
