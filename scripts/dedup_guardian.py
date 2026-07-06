@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""
-Deduplication Guardian for silicon-hdl
+"""Deduplication Guardian for silicon-hdl.
 
 Scans the monorepo for strict duplicate "module Name" definitions
 (violating the canonical single-source-of-truth rules) and near-duplicates.
@@ -114,6 +113,71 @@ def compute_similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
+def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
+    """Core analysis: returns (strict_violations, near_dups, purity)."""
+    module_locations: Dict[str, List[Path]] = defaultdict(list)
+    for f in sv_files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for m in MODULE_RE.finditer(text):
+            module_locations[m.group(1)].append(f)
+
+    protected = build_protected_modules(sv_files)
+
+    strict_violations: List[Tuple[str, List[Path]]] = []
+    for name in sorted(protected):
+        hits = module_locations.get(name, [])
+        if len(hits) != 1:
+            strict_violations.append((name, hits))
+
+    # Near-dup radar — compare non-tb non-example files
+    near_dups: List[Tuple[Path, Path, float, str]] = []
+    impl_files = [
+        f for f in sv_files
+        if "/tb/" not in str(f) and "/examples/" not in str(f)
+    ]
+    file_texts: Dict[Path, str] = {}
+    for f in impl_files:
+        try:
+            file_texts[f] = f.read_text(encoding="utf-8", errors="replace")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+    compared = set()
+    for i, a in enumerate(impl_files):
+        for b in impl_files[i + 1 :]:
+            key = tuple(sorted([str(a), str(b)]))
+            if key in compared:
+                continue
+            compared.add(key)
+            if a in IGNORE_FOR_NEAR_DUP or b in IGNORE_FOR_NEAR_DUP:
+                continue
+            ta = file_texts.get(a, "")
+            tb = file_texts.get(b, "")
+            if not ta or not tb:
+                continue
+            score = compute_similarity(ta, tb)
+            if score >= threshold:
+                diff_lines = list(
+                    difflib.unified_diff(
+                        ta.splitlines(keepends=False),
+                        tb.splitlines(keepends=False),
+                        fromfile=str(a.relative_to(root)),
+                        tofile=str(b.relative_to(root)),
+                        n=3,
+                    )
+                )[:30]
+                diff = "\n".join(diff_lines)
+                near_dups.append((a, b, score, diff))
+
+    strict_penalty = len(strict_violations) * 20
+    near_penalty = len(near_dups) * 5
+    purity = max(0, 100 - strict_penalty - near_penalty)
+    return strict_violations, near_dups, purity
+
+
 def generate_radar(
     strict_violations: List[Tuple[str, List[Path]]],
     near_dups: List[Tuple[Path, Path, float, str]],
@@ -139,7 +203,10 @@ def generate_radar(
             for h in hits:
                 rel = h.relative_to(root)
                 lines.append(f"  - `{rel}`")
-            lines.append("  **Action**: keep only the canonical copy declared in its header; delete or move the others.")
+            lines.append(
+                "  **Action**: keep only the canonical copy declared in its header; "
+                "delete or move the others."
+            )
         lines.append("")
 
     if near_dups:
@@ -169,76 +236,7 @@ def main() -> int:
     root = Path(".").resolve()
     sv_files = find_sv_files(root)
 
-    # Precompute module locations in one pass to avoid O(N*M) re-reads (addresses gemini perf review)
-    module_locations: Dict[str, List[Path]] = defaultdict(list)
-    for f in sv_files:
-        try:
-            text = f.read_text(encoding="utf-8", errors="replace")
-        except (OSError, UnicodeDecodeError):
-            continue
-        for m in MODULE_RE.finditer(text):
-            module_locations[m.group(1)].append(f)
-
-    # Protected modules = those that declare "Canonical source:" in at least one file
-    protected = build_protected_modules(sv_files)
-
-    strict_violations: List[Tuple[str, List[Path]]] = []
-    for name in sorted(protected):
-        hits = module_locations.get(name, [])
-        if len(hits) != 1:
-            strict_violations.append((name, hits))
-
-    # Near-dup radar — only among the protected canonical files (skip TBs etc.)
-    near_dups: List[Tuple[Path, Path, float, str]] = []
-    # Map protected names back to their canonical file (the one with the header)
-    name_to_canon: Dict[str, Path] = {}
-    for f in sv_files:
-        try:
-            text = f.read_text(encoding="utf-8", errors="replace")
-        except (OSError, UnicodeDecodeError):
-            continue
-        canonical_str, modules = extract_canonical_and_module(text)
-        if canonical_str and modules:
-            for m in modules:
-                if m in protected and m not in name_to_canon:
-                    name_to_canon[m] = f
-    impl_files = [f for f in sv_files if '/tb/' not in str(f) and '/examples/' not in str(f)]  # compare impl for near, exclude tb/examples (to keep 100% on clean)
-    file_texts: Dict[Path, str] = {}
-    for f in impl_files:
-        try:
-            file_texts[f] = f.read_text(encoding="utf-8", errors="replace")
-        except Exception:
-            continue
-
-    compared = set()
-    for i, a in enumerate(impl_files):
-        for b in impl_files[i+1:]:
-            key = tuple(sorted([str(a), str(b)]))
-            if key in compared:
-                continue
-            compared.add(key)
-            if a in IGNORE_FOR_NEAR_DUP or b in IGNORE_FOR_NEAR_DUP:
-                continue
-            ta = file_texts.get(a, "")
-            tb = file_texts.get(b, "")
-            if not ta or not tb:
-                continue
-            score = compute_similarity(ta, tb)
-            if score >= args.threshold:
-                diff_lines = list(difflib.unified_diff(
-                    ta.splitlines(keepends=False),
-                    tb.splitlines(keepends=False),
-                    fromfile=str(a.relative_to(root)),
-                    tofile=str(b.relative_to(root)),
-                    n=3,
-                ))[:30]
-                diff = "\n".join(diff_lines)
-                near_dups.append((a, b, score, diff))
-
-    # Purity score (simple, tunable)
-    strict_penalty = len(strict_violations) * 20
-    near_penalty = len(near_dups) * 5
-    purity = max(0, 100 - strict_penalty - near_penalty)
+    strict_violations, near_dups, purity = analyze_repository(sv_files, root, args.threshold)
 
     radar = generate_radar(strict_violations, near_dups, purity, root)
 
