@@ -49,7 +49,7 @@ def find_sv_files(root: Path) -> List[Path]:
     return sorted(set(f for f in files if f.is_file()))
 
 
-def extract_canonical_and_module(text: str, file_path: Path) -> Tuple[str | None, str | None]:
+def extract_canonical_and_module(text: str) -> Tuple[Optional[str], Optional[str]]:
     """Return (canonical_path_str or None, module_name or None) from a .sv file."""
     canon_match = CANONICAL_RE.search(text)
     canonical = canon_match.group(1).strip() if canon_match else None
