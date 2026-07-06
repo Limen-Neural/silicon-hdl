@@ -74,7 +74,6 @@ def build_protected_and_locations(files: List[Path]) -> tuple[set, Dict[str, Lis
                 protected.add(m)
         for m in modules:
             locs[m].append(f)
-            locs[m.group(1)].append(f)
     return protected, locs
 
 
