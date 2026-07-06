@@ -27,7 +27,7 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Tuple, Optional
 
 # Focus areas for scanning (per repo layout and issue scope)
 FOCUS_GLOBS = ["spikenaut-*/**/*.sv", "synapse-link-hdl/**/*.sv"]
