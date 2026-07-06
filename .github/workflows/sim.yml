@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# .github/workflows/sim.yml
+# Verilator simulation for spikenaut-core-sv unit testbenches.
+# Addresses issue #9: runs on push/PR using free GitHub-hosted runners.
+# See also: scripts/sim_core.tcl (Vivado equivalent), PR #11 (testbench $fatal hardening).
+
+name: RTL Simulation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verilator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y verilator
+
+      - name: Run tb_LifNeuron
+        run: |
+          rm -rf obj_dir
+          # Compile then execute as separate commands for clearer failure attribution
+          # (addresses review feedback on && chaining). GitHub Actions uses set -e.
+          # The -Wno-* flags match the original implementation notes in issue #9
+          # and are required for clean compilation of the existing testbenches
+          # (timescales, intentional width handling, module/filename conventions).
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module tb_LifNeuron \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/LifNeuron.sv \
+            spikenaut-core-sv/tb/tb_LifNeuron.sv
+          ./obj_dir/Vtb_LifNeuron
+
+      - name: Run tb_WeightRam
+        run: |
+          rm -rf obj_dir
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module tb_WeightRam \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/WeightRam.sv \
+            spikenaut-core-sv/tb/tb_WeightRam.sv
+          ./obj_dir/Vtb_WeightRam
+
+      - name: Run tb_NeuronParamRam
+        run: |
+          rm -rf obj_dir
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module tb_NeuronParamRam \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/NeuronParamRam.sv \
+            spikenaut-core-sv/tb/tb_NeuronParamRam.sv
+          ./obj_dir/Vtb_NeuronParamRam
