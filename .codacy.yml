@@ -1,0 +1,17 @@
+---
+engines:
+  pylint:
+    enabled: true
+    options:
+      max-line-length: 160
+      max-module-lines: 100
+      max-complexity: 15
+  flake8:
+    enabled: true
+    options:
+      max-line-length: 160
+  pydocstyle:
+    enabled: true
+exclude_paths:
+  - tests/
+  - "**/test_*.py"
