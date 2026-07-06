@@ -175,11 +175,9 @@ def main() -> int:
             text = f.read_text(encoding="utf-8", errors="replace")
         except Exception:
             continue
-        _, mod_name = extract_canonical_and_module(text, f)
-        if mod_name in protected and f not in name_to_canon.values():
-            # Prefer the file that actually contains the Canonical header line
-            if CANONICAL_RE.search(text):
-                name_to_canon[mod_name] = f
+        canonical_str, mod_name = extract_canonical_and_module(text, f)
+        if mod_name in protected and canonical_str and CANONICAL_RE.search(text):
+            name_to_canon[mod_name] = f
     impl_files = list(name_to_canon.values())
     file_texts: Dict[Path, str] = {}
     for f in impl_files:
@@ -191,7 +189,7 @@ def main() -> int:
     compared = set()
     for i, a in enumerate(impl_files):
         for b in impl_files[i+1:]:
-            key = tuple(sorted([a, b]))
+            key = tuple(sorted([str(a), str(b)]))
             if key in compared:
                 continue
             compared.add(key)

@@ -27,6 +27,8 @@ jobs:
 
       - name: Post Dupe Radar comment
         if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -f radar.md ]; then
             gh pr comment --body-file radar.md || true
