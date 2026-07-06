@@ -176,7 +176,7 @@ def main() -> int:
         except Exception:
             continue
         canonical_str, mod_name = extract_canonical_and_module(text, f)
-        if mod_name in protected and canonical_str and CANONICAL_RE.search(text):
+        if mod_name in protected and canonical_str and mod_name not in name_to_canon:
             name_to_canon[mod_name] = f
     impl_files = list(name_to_canon.values())
     file_texts: Dict[Path, str] = {}
