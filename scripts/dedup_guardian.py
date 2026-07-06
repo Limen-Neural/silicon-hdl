@@ -59,13 +59,10 @@ def extract_canonical_and_module(text: str) -> Tuple[Optional[str], List[str]]:
     return canonical, modules
 
 
-def build_protected_modules(files: List[Path]) -> set:
-    """
-    Return the set of module names that have at least one declaration of
-    "Canonical source:" in a file that also contains that module.
-    These are the modules the Guardian strictly protects (expect exactly 1 hit).
-    """
+def build_protected_and_locations(files: List[Path]) -> tuple[set, Dict[str, List[Path]]]:
+    """One pass to build protected set and module_locations map. Avoids repeated reads."""
     protected = set()
+    locs: Dict[str, List[Path]] = defaultdict(list)
     for f in files:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
@@ -75,34 +72,9 @@ def build_protected_modules(files: List[Path]) -> set:
         if canonical_str and modules:
             for m in modules:
                 protected.add(m)
-    return protected
-
-
-def precompute_module_locations(files: List[Path]) -> Dict[str, List[Path]]:
-    """One pass to map module name to list of files containing it. Avoids repeated reads."""
-    locs: Dict[str, List[Path]] = defaultdict(list)
-    for f in files:
-        try:
-            text = f.read_text(encoding="utf-8", errors="replace")
-        except (OSError, UnicodeDecodeError):
-            continue
         for m in MODULE_RE.finditer(text):
             locs[m.group(1)].append(f)
-    return locs
-
-
-def find_occurrences(files: List[Path], module_name: str) -> List[Path]:
-    """Find all .sv files that contain 'module <name>' (simple, fast, matches README greps)."""
-    pattern = re.compile(rf"^\s*module\s+{re.escape(module_name)}\b", re.MULTILINE)
-    hits: List[Path] = []
-    for f in files:
-        try:
-            text = f.read_text(encoding="utf-8", errors="replace")
-            if pattern.search(text):
-                hits.append(f)
-        except (OSError, UnicodeDecodeError):
-            continue
-    return sorted(set(hits))
+    return protected, locs
 
 
 def compute_similarity(a: str, b: str) -> float:
@@ -114,17 +86,8 @@ def compute_similarity(a: str, b: str) -> float:
 
 
 def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
-    """Core analysis: returns (strict_violations, near_dups, purity)."""
-    module_locations: Dict[str, List[Path]] = defaultdict(list)
-    for f in sv_files:
-        try:
-            text = f.read_text(encoding="utf-8", errors="replace")
-        except (OSError, UnicodeDecodeError):
-            continue
-        for m in MODULE_RE.finditer(text):
-            module_locations[m.group(1)].append(f)
-
-    protected = build_protected_modules(sv_files)
+    """Core analysis: returns (strict_violations, near_dups, purity). One pass for I/O."""
+    protected, module_locations = build_protected_and_locations(sv_files)
 
     strict_violations: List[Tuple[str, List[Path]]] = []
     for name in sorted(protected):
@@ -136,7 +99,7 @@ def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
     near_dups: List[Tuple[Path, Path, float, str]] = []
     impl_files = [
         f for f in sv_files
-        if "/tb/" not in str(f) and "/examples/" not in str(f)
+        if "tb" not in f.parts and "examples" not in f.parts
     ]
     file_texts: Dict[Path, str] = {}
     for f in impl_files:
