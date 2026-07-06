@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# .github/workflows/dedup-guardian.yml
+# Deduplication Guardian — protects the single-source-of-truth (issue #5)
+#
+# Runs on every PR:
+# - Enforces the canonical module registry (no duplicate "module Name" in .sv)
+# - Reports near-duplicates with a beautiful "Dupe Radar" comment
+# - Reports a Purity Score
+# - Fails the check on any strict violations
+
+name: Deduplication Guardian
+
+on:
+  pull_request:
+
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Deduplication Guardian
+        run: python scripts/dedup_guardian.py --radar radar.md
+
+      - name: Post Dupe Radar comment
+        if: always()
+        run: |
+          if [ -f radar.md ]; then
+            gh pr comment --body-file radar.md || true
+          fi
