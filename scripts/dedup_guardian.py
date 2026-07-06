@@ -25,6 +25,7 @@ import argparse
 import difflib
 import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Set
 
@@ -49,15 +50,14 @@ def find_sv_files(root: Path) -> List[Path]:
     return sorted(set(f for f in files if f.is_file()))
 
 
-def extract_canonical_and_module(text: str) -> Tuple[Optional[str], Optional[str]]:
-    """Return (canonical_path_str or None, module_name or None) from a .sv file."""
+def extract_canonical_and_module(text: str) -> Tuple[Optional[str], List[str]]:
+    """Return (canonical_path_str or None, list of module_names) from a .sv file."""
     canon_match = CANONICAL_RE.search(text)
     canonical = canon_match.group(1).strip() if canon_match else None
 
-    mod_match = MODULE_RE.search(text)
-    module_name = mod_match.group(1) if mod_match else None
+    modules = [m.group(1) for m in MODULE_RE.finditer(text)]
 
-    return canonical, module_name
+    return canonical, modules
 
 
 def build_protected_modules(files: List[Path]) -> set:
@@ -70,26 +70,38 @@ def build_protected_modules(files: List[Path]) -> set:
     for f in files:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
-        canonical_str, mod_name = extract_canonical_and_module(text, f)
-        if canonical_str and mod_name:
-            protected.add(mod_name)
+        canonical_str, modules = extract_canonical_and_module(text)
+        if canonical_str and modules:
+            for m in modules:
+                protected.add(m)
     return protected
 
 
-def find_occurrences(root: Path, module_name: str) -> List[Path]:
+def precompute_module_locations(files: List[Path]) -> Dict[str, List[Path]]:
+    """One pass to map module name to list of files containing it. Avoids repeated reads."""
+    locs: Dict[str, List[Path]] = defaultdict(list)
+    for f in files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for m in MODULE_RE.finditer(text):
+            locs[m.group(1)].append(f)
+    return locs
+
+
+def find_occurrences(files: List[Path], module_name: str) -> List[Path]:
     """Find all .sv files that contain 'module <name>' (simple, fast, matches README greps)."""
     pattern = re.compile(rf"^\s*module\s+{re.escape(module_name)}\b", re.MULTILINE)
     hits: List[Path] = []
-    for f in root.rglob("*.sv"):
-        if not f.is_file():
-            continue
+    for f in files:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
             if pattern.search(text):
                 hits.append(f)
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
     return sorted(set(hits))
 
@@ -109,7 +121,7 @@ def generate_radar(
     root: Path,
 ) -> str:
     lines: List[str] = []
-    lines.append("🛡️ **Dupe Radar**")
+    lines.append("🛡️ **Dupe Radar** <!-- dedup-guardian -->")
     lines.append("")
     lines.append(f"**Purity Score: {purity}%** (this PR / tree)")
     lines.append("")
@@ -157,12 +169,22 @@ def main() -> int:
     root = Path(".").resolve()
     sv_files = find_sv_files(root)
 
+    # Precompute module locations in one pass to avoid O(N*M) re-reads (addresses gemini perf review)
+    module_locations: Dict[str, List[Path]] = defaultdict(list)
+    for f in sv_files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for m in MODULE_RE.finditer(text):
+            module_locations[m.group(1)].append(f)
+
     # Protected modules = those that declare "Canonical source:" in at least one file
     protected = build_protected_modules(sv_files)
 
     strict_violations: List[Tuple[str, List[Path]]] = []
     for name in sorted(protected):
-        hits = find_occurrences(root, name)
+        hits = module_locations.get(name, [])
         if len(hits) != 1:
             strict_violations.append((name, hits))
 
@@ -173,12 +195,14 @@ def main() -> int:
     for f in sv_files:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
-        canonical_str, mod_name = extract_canonical_and_module(text, f)
-        if mod_name in protected and canonical_str and mod_name not in name_to_canon:
-            name_to_canon[mod_name] = f
-    impl_files = list(name_to_canon.values())
+        canonical_str, modules = extract_canonical_and_module(text)
+        if canonical_str and modules:
+            for m in modules:
+                if m in protected and m not in name_to_canon:
+                    name_to_canon[m] = f
+    impl_files = [f for f in sv_files if '/tb/' not in str(f) and '/examples/' not in str(f)]  # compare impl for near, exclude tb/examples (to keep 100% on clean)
     file_texts: Dict[Path, str] = {}
     for f in impl_files:
         try:
