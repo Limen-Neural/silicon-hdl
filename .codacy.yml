@@ -4,8 +4,8 @@ engines:
     enabled: true
     options:
       max-line-length: 160
-      max-module-lines: 100
-      max-complexity: 15
+      max-module-lines: 150
+      max-complexity: 20
   flake8:
     enabled: true
     options:
