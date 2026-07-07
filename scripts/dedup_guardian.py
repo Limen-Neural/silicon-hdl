@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""
-Deduplication Guardian for silicon-hdl.
+"""Deduplication Guardian for silicon-hdl.
 
 Scans the monorepo for strict duplicate "module Name" definitions
 (violating the canonical single-source-of-truth rules) and near-duplicates.
@@ -98,10 +97,10 @@ def _find_strict_violations(
     return violations
 
 
-def _find_near_dups(
-    sv_files: List[Path], root: Path, threshold: float
-) -> List[Tuple[Path, Path, float, str]]:
-    """Pairwise similarity scan on implementation files."""
+def _load_impl_texts(
+    sv_files: List[Path],
+) -> Tuple[List[Path], Dict[Path, str]]:
+    """Read implementation files (excluding tb/examples), return paths + texts."""
     impl_files = [
         f for f in sv_files
         if "tb" not in f.parts and "examples" not in f.parts
@@ -112,7 +111,35 @@ def _find_near_dups(
             file_texts[f] = f.read_text(encoding="utf-8", errors="replace")
         except (OSError, UnicodeDecodeError):
             continue
+    return impl_files, file_texts
 
+
+def _compare_pair(
+    a: Path, b: Path, ta: str, tb: str, root: Path, threshold: float
+) -> Optional[Tuple[Path, Path, float, str]]:
+    """Compare two files; return near-dup tuple if above threshold, else None."""
+    if not ta or not tb:
+        return None
+    score = compute_similarity(ta, tb)
+    if score < threshold:
+        return None
+    diff_lines = list(
+        difflib.unified_diff(
+            ta.splitlines(keepends=False),
+            tb.splitlines(keepends=False),
+            fromfile=str(a.relative_to(root)),
+            tofile=str(b.relative_to(root)),
+            n=3,
+        )
+    )[:30]
+    return (a, b, score, "\n".join(diff_lines))
+
+
+def _find_near_dups(
+    sv_files: List[Path], root: Path, threshold: float
+) -> List[Tuple[Path, Path, float, str]]:
+    """Pairwise similarity scan on implementation files."""
+    impl_files, file_texts = _load_impl_texts(sv_files)
     near_dups: List[Tuple[Path, Path, float, str]] = []
     compared = set()
     for i, a in enumerate(impl_files):
@@ -121,22 +148,11 @@ def _find_near_dups(
             if key in compared or a in IGNORE_FOR_NEAR_DUP or b in IGNORE_FOR_NEAR_DUP:
                 continue
             compared.add(key)
-            ta = file_texts.get(a, "")
-            tb = file_texts.get(b, "")
-            if not ta or not tb:
-                continue
-            score = compute_similarity(ta, tb)
-            if score >= threshold:
-                diff_lines = list(
-                    difflib.unified_diff(
-                        ta.splitlines(keepends=False),
-                        tb.splitlines(keepends=False),
-                        fromfile=str(a.relative_to(root)),
-                        tofile=str(b.relative_to(root)),
-                        n=3,
-                    )
-                )[:30]
-                near_dups.append((a, b, score, "\n".join(diff_lines)))
+            result = _compare_pair(
+                a, b, file_texts.get(a, ""), file_texts.get(b, ""), root, threshold
+            )
+            if result is not None:
+                near_dups.append(result)
     return near_dups
 
 
