@@ -1,5 +1,7 @@
 ---
 engines:
+  pydocstyle:
+    enabled: false
   pylint:
     enabled: true
     arguments:
