@@ -8,3 +8,8 @@
 
 # Keep hooks tracked
 !.beads/hooks/
+
+
+#Ignore cursor AI rules
+.cursor/rules/codacy.mdc
+.codacy/
