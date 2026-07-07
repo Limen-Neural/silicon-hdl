@@ -60,7 +60,7 @@ def extract_canonical_and_module(text: str) -> Tuple[Optional[str], List[str]]:
     return canonical, modules
 
 
-def build_protected_and_locations(files: List[Path]) -> tuple[set, Dict[str, List[Path]]]:
+def build_protected_and_locations(files: List[Path]) -> Tuple[set, Dict[str, List[Path]]]:
     """One pass to build protected set and module_locations map. Avoids repeated reads."""
     protected = set()
     locs: Dict[str, List[Path]] = defaultdict(list)
