@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""Deduplication Guardian for silicon-hdl.
+"""
+Deduplication Guardian for silicon-hdl.
 
 Scans the monorepo for strict duplicate "module Name" definitions
 (violating the canonical single-source-of-truth rules) and near-duplicates.
