@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""Deduplication Guardian for silicon-hdl.
+"""
+Deduplication Guardian for silicon-hdl.
 
 Scans the monorepo for strict duplicate "module Name" definitions
 (violating the canonical single-source-of-truth rules) and near-duplicates.
@@ -85,19 +86,22 @@ def compute_similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
-def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
-    """Core analysis: returns (strict_violations, near_dups, purity). One pass for I/O."""
-    # pylint: disable=too-many-branches,too-many-locals
-    protected, module_locations = build_protected_and_locations(sv_files)
-
-    strict_violations: List[Tuple[str, List[Path]]] = []
+def _find_strict_violations(
+    protected: set, module_locations: Dict[str, List[Path]]
+) -> List[Tuple[str, List[Path]]]:
+    """Return modules with != 1 occurrence."""
+    violations: List[Tuple[str, List[Path]]] = []
     for name in sorted(protected):
         hits = module_locations.get(name, [])
         if len(hits) != 1:
-            strict_violations.append((name, hits))
+            violations.append((name, hits))
+    return violations
 
-    # Near-dup radar — compare non-tb non-example files
-    near_dups: List[Tuple[Path, Path, float, str]] = []
+
+def _find_near_dups(
+    sv_files: List[Path], root: Path, threshold: float
+) -> List[Tuple[Path, Path, float, str]]:
+    """Pairwise similarity scan on implementation files."""
     impl_files = [
         f for f in sv_files
         if "tb" not in f.parts and "examples" not in f.parts
@@ -109,15 +113,14 @@ def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
         except (OSError, UnicodeDecodeError):
             continue
 
+    near_dups: List[Tuple[Path, Path, float, str]] = []
     compared = set()
     for i, a in enumerate(impl_files):
         for b in impl_files[i + 1 :]:
             key = tuple(sorted([str(a), str(b)]))
-            if key in compared:
+            if key in compared or a in IGNORE_FOR_NEAR_DUP or b in IGNORE_FOR_NEAR_DUP:
                 continue
             compared.add(key)
-            if a in IGNORE_FOR_NEAR_DUP or b in IGNORE_FOR_NEAR_DUP:
-                continue
             ta = file_texts.get(a, "")
             tb = file_texts.get(b, "")
             if not ta or not tb:
@@ -133,13 +136,52 @@ def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
                         n=3,
                     )
                 )[:30]
-                diff = "\n".join(diff_lines)
-                near_dups.append((a, b, score, diff))
+                near_dups.append((a, b, score, "\n".join(diff_lines)))
+    return near_dups
 
-    strict_penalty = len(strict_violations) * 20
-    near_penalty = len(near_dups) * 5
-    purity = max(0, 100 - strict_penalty - near_penalty)
+
+def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
+    """Core analysis: returns (strict_violations, near_dups, purity)."""
+    protected, module_locations = build_protected_and_locations(sv_files)
+    strict_violations = _find_strict_violations(protected, module_locations)
+    near_dups = _find_near_dups(sv_files, root, threshold)
+    purity = max(0, 100 - len(strict_violations) * 20 - len(near_dups) * 5)
     return strict_violations, near_dups, purity
+
+
+def _format_strict_section(
+    strict_violations: List[Tuple[str, List[Path]]], root: Path
+) -> List[str]:
+    """Format the strict-duplicates section of the radar."""
+    lines: List[str] = []
+    lines.append("### 🚨 Strict Duplicates (enforcement)")
+    for name, hits in strict_violations:
+        lines.append(f"- **module {name}** appears in {len(hits)} places (expected exactly the canonical):")
+        for h in hits:
+            lines.append(f"  - `{h.relative_to(root)}`")
+        lines.append(
+            "  **Action**: keep only the canonical copy declared in its header; "
+            "delete or move the others."
+        )
+    lines.append("")
+    return lines
+
+
+def _format_near_dups_section(
+    near_dups: List[Tuple[Path, Path, float, str]], root: Path
+) -> List[str]:
+    """Format the near-duplicates section of the radar."""
+    lines: List[str] = []
+    lines.append("### ⚠️ Near Duplicates (review recommended)")
+    for a, b, score, diff in near_dups:
+        lines.append(f"- `{a.relative_to(root)}` ~ `{b.relative_to(root)}` ({score:.0%} similar)")
+        if diff:
+            lines.append("  ```diff")
+            lines.append(diff)
+            lines.append("  ```")
+        lines.append("  **Suggested**: align with the canonical source or delete the near-dupe.")
+    lines.append("")
+    return lines
 
 
 def generate_radar(
@@ -148,12 +190,13 @@ def generate_radar(
     purity: int,
     root: Path,
 ) -> str:
-    # pylint: disable=too-many-branches
-    lines: List[str] = []
-    lines.append("🛡️ **Dupe Radar** <!-- dedup-guardian -->")
-    lines.append("")
-    lines.append(f"**Purity Score: {purity}%** (this PR / tree)")
-    lines.append("")
+    """Build the Dupe Radar markdown comment."""
+    lines: List[str] = [
+        "🛡️ **Dupe Radar** <!-- dedup-guardian -->",
+        "",
+        f"**Purity Score: {purity}%** (this PR / tree)",
+        "",
+    ]
 
     if not strict_violations and not near_dups:
         lines.append("✅ **All clear.** The single source of truth is safe.")
@@ -162,30 +205,9 @@ def generate_radar(
         return "\n".join(lines)
 
     if strict_violations:
-        lines.append("### 🚨 Strict Duplicates (enforcement)")
-        for name, hits in strict_violations:
-            lines.append(f"- **module {name}** appears in {len(hits)} places (expected exactly the canonical):")
-            for h in hits:
-                rel = h.relative_to(root)
-                lines.append(f"  - `{rel}`")
-            lines.append(
-                "  **Action**: keep only the canonical copy declared in its header; "
-                "delete or move the others."
-            )
-        lines.append("")
-
+        lines.extend(_format_strict_section(strict_violations, root))
     if near_dups:
-        lines.append("### ⚠️ Near Duplicates (review recommended)")
-        for a, b, score, diff in near_dups:
-            rel_a = a.relative_to(root)
-            rel_b = b.relative_to(root)
-            lines.append(f"- `{rel_a}` ~ `{rel_b}` ({score:.0%} similar)")
-            if diff:
-                lines.append("  ```diff")
-                lines.append(diff)
-                lines.append("  ```")
-            lines.append("  **Suggested**: align with the canonical source or delete the near-dupe.")
-        lines.append("")
+        lines.extend(_format_near_dups_section(near_dups, root))
 
     lines.append("Guardian says: review the radar above and keep the single source of truth pure.")
     return "\n".join(lines)
