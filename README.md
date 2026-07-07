@@ -64,6 +64,15 @@ vivado -mode batch -source scripts/sim_core.tcl
 
 ## Deduplication verification
 
+The manual greps below are enforced automatically by the **Deduplication Guardian**
+(`.github/workflows/dedup-guardian.yml` + `scripts/dedup_guardian.py` — see issue #5).
+
+Run locally for the full "Dupe Radar" + Purity Score:
+
+```bash
+python scripts/dedup_guardian.py
+```
+
 ```bash
 grep -R "module LifNeuron"       . --include="*.sv"  # expect 1 hit
 grep -R "module WeightRam"       . --include="*.sv"  # expect 1 hit
