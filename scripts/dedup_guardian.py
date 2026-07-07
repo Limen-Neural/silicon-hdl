@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""
-Deduplication Guardian for silicon-hdl.
+"""Deduplication Guardian for silicon-hdl.
 
 Scans the monorepo for strict duplicate "module Name" definitions
 (violating the canonical single-source-of-truth rules) and near-duplicates.
@@ -88,6 +87,7 @@ def compute_similarity(a: str, b: str) -> float:
 
 def analyze_repository(sv_files: List[Path], root: Path, threshold: float):
     """Core analysis: returns (strict_violations, near_dups, purity). One pass for I/O."""
+    # pylint: disable=too-many-branches,too-many-locals
     protected, module_locations = build_protected_and_locations(sv_files)
 
     strict_violations: List[Tuple[str, List[Path]]] = []
@@ -148,6 +148,7 @@ def generate_radar(
     purity: int,
     root: Path,
 ) -> str:
+    # pylint: disable=too-many-branches
     lines: List[str] = []
     lines.append("🛡️ **Dupe Radar** <!-- dedup-guardian -->")
     lines.append("")
