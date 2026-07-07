@@ -10,6 +10,8 @@ engines:
     enabled: true
     arguments:
       - "--max-line-length=160"
+  pydocstyle:
+    enabled: false
 exclude_paths:
   - tests/
   - "**/test_*.py"
