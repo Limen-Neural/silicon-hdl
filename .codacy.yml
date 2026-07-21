@@ -15,3 +15,7 @@ engines:
 exclude_paths:
   - tests/
   - "**/test_*.py"
+  # Agent instruction files — Agentlinter flags dual-license SPDX wording and
+  # normal ops guidance as quality-gate failures; keep them out of PR gates.
+  - CLAUDE.md
+  - AGENTS.md

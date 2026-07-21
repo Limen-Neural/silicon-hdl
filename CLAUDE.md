@@ -1,4 +1,4 @@
-<!-- Software Package Data Exchange (SPDX) License-Identifier: Massachusetts Institute of Technology (MIT) OR Apache-2.0 -->
+<!-- Software Package Data Exchange (SPDX) License-Identifier: Massachusetts Institute of Technology (MIT) or Apache-2.0 -->
 <!-- Last updated: 2026-07-21 -->
 # CLAUDE.md
 
@@ -61,6 +61,4 @@ registered module. Near-duplicates are review-only via `--radar` (see `AGENTS.md
 
 ## Next
 
-- Build and simulate: see `AGENTS.md` section **Build and test**.
-- Compile order and licensing: see `AGENTS.md` section **Architecture notes**.
-- Issue tracking with `bd`: see `AGENTS.md` section **Issue tracking**.
+See `AGENTS.md` for build steps, architecture notes, and issue-tracking rules.

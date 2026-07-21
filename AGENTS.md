@@ -1,4 +1,4 @@
-<!-- Software Package Data Exchange (SPDX) License-Identifier: Massachusetts Institute of Technology (MIT) OR Apache-2.0 -->
+<!-- Software Package Data Exchange (SPDX) License-Identifier: Massachusetts Institute of Technology (MIT) or Apache-2.0 -->
 <!-- Last updated: 2026-07-21 -->
 # AGENTS.md
 
@@ -44,11 +44,13 @@ vivado -mode batch -source scripts/build_soc.tcl   # synth + implement + write b
 vivado -mode batch -source scripts/sim_core.tcl     # all core unit testbenches
 ```
 
-`build_soc.tcl` hardcodes its register-transfer-level (RTL) source-file lists so library ownership
-stays explicit — when adding a new RTL file, add it to the relevant `read_verilog -sv` list.
-`sim_core.tcl` hardcodes RTL lists the same way but discovers testbench files under
-`spikenaut-core-sv/tb` via glob; new testbenches are picked up automatically, but their top module
-still needs to be added to `core_tb_tops` to actually run.
+`scripts/build_soc.tcl` hardcodes its register-transfer-level (RTL) source-file lists. When you
+add a new RTL module under `spikenaut-core-sv/rtl`, `spikenaut-bridge-sv/rtl`, or
+`spikenaut-soc-sv/rtl`, append that path to the matching `read_verilog -sv` block in
+`scripts/build_soc.tcl`. `scripts/sim_core.tcl` hardcodes the same RTL lists and discovers
+testbench files under `spikenaut-core-sv/tb` via glob; new testbenches are picked up
+automatically, but you must append the top module name to the `core_tb_tops` list before it
+will run.
 
 ### Deduplication check
 
@@ -77,8 +79,9 @@ python scripts/dedup_guardian.py --radar radar.md --threshold 0.85   # near-dup 
   protocol); this parameter is intentionally propagated through `UartRx`/`UartTx`/`SiliconBridge`
   even though the protocol is fixed at 8-bit framing.
 - Licensing: dual Massachusetts Institute of Technology (MIT) / Apache-2.0. Every source file
-  (`.sv`, `.tcl`, `.xdc`, docs) carries a Software Package Data Exchange (SPDX) header
-  `SPDX-License-Identifier: MIT OR Apache-2.0` — include it on any new file.
+  (`.sv`, `.tcl`, `.xdc`, docs) carries a Software Package Data Exchange (SPDX) header such as
+  `SPDX-License-Identifier: MIT OR Apache-2.0` (standard SPDX dual-license syntax) — include it
+  on any new file.
 
 ## Issue tracking
 
