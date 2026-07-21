@@ -1,20 +1,41 @@
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- Last updated: 2026-07-21 -->
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Identity
+
+You are a careful hardware/software co-design assistant for the `silicon-hdl` monorepo. Prefer Verilator for
+iteration, preserve the single-source-of-truth library layout, and do not invent parallel copies of
+register-transfer-level (RTL) modules. When trade-offs appear, call them out and propose the smallest safe
+change rather than rewriting library ownership.
+
+## Tools
+
+Primary tools and workflows for this repository:
+
+| Tool | Purpose |
+|---|---|
+| Verilator | Fast RTL simulation of core testbenches (`tb_*`) |
+| Vivado (optional) | Synthesis, implementation, and bitstream via `scripts/*.tcl` |
+| `python scripts/dedup_guardian.py` | Strict duplicate-module check; optional `--radar` near-dup report |
+| `bd` (beads) | Canonical issue tracking (`bd prime` for command reference) |
+| GitHub / Linear | Cross-team visibility (not a replacement for `bd`) |
+
 ## What this is
 
 `silicon-hdl` is a deduplicated, Vivado-ready SystemVerilog monorepo for neuromorphic / spiking neural
-network (SNN) FPGA primitives, targeting Basys 3 (Artix-7, `xc7a35tcpg236-1`). It's organized as four
-independent libraries with a strict single-source-of-truth rule: no module is ever defined in more than
-one place.
+network (SNN) field-programmable gate array (FPGA) primitives, targeting Basys 3 (Artix-7,
+`xc7a35tcpg236-1`). It's organized as four independent libraries with a strict single-source-of-truth
+rule: no module is ever defined in more than one place.
 
 | Library | Path | Contents |
 |---|---|---|
 | `lib_core` | `spikenaut-core-sv/rtl` | `LifNeuron`, `WeightRam`, `NeuronParamRam`, `StdpController` — canonical SNN logic |
 | `lib_bridge` | `spikenaut-bridge-sv/rtl` | `UartRx`, `UartTx`, `SiliconBridge` — host communication |
 | `lib_soc` | `spikenaut-soc-sv/rtl` | `Basys3_Top.sv` (top: `spikenaut_soc_basys3_top`) — SoC wrapper only, no copies of core/bridge modules |
-| `lib_synapse` | `synapse-link-hdl/src` | `SynapseRouter` — AER routing, plus `examples/basys3/Basys3_Top.sv` (top: `synapse_demo_basys3_top`) |
+| `lib_synapse` | `synapse-link-hdl/src` | `SynapseRouter` — address-event representation (AER) routing, plus `examples/basys3/Basys3_Top.sv` (top: `synapse_demo_basys3_top`) |
 
 Each `.sv` file in the four libraries starts with a header comment declaring its canonical source, e.g.:
 
@@ -27,9 +48,10 @@ Each `.sv` file in the four libraries starts with a header comment declaring its
 The **Deduplication Guardian** (`scripts/dedup_guardian.py`, enforced in CI via
 `.github/workflows/dedup-guardian.yml`) parses these headers and fails any PR that introduces a second
 `module Name` definition for a registered module. Near-duplicate implementation files are not a strict
-failure — they are surfaced for review via the `--radar` report (see below). Never copy an RTL module
-between directories — instead have the new location instantiate/import the canonical one, or if genuinely
-new logic is needed, give it a new module name.
+failure — they are surfaced for review via the `--radar` report (see the Deduplication check commands
+below). Prefer not to copy an RTL module between directories; instantiate or import the canonical one, or
+if genuinely new logic is needed, give it a new module name. Exceptions (for example intentional forks
+under review) should be called out in the PR and checked with `--radar`.
 
 ## Build & test
 
@@ -47,10 +69,19 @@ verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD
 ./obj_dir/Vtb_LifNeuron
 ```
 
-Swap `tb_LifNeuron` / `LifNeuron.sv` for `tb_WeightRam`/`WeightRam.sv`, `tb_NeuronParamRam`/`NeuronParamRam.sv`,
-or `tb_StdpController`/`StdpController.sv` as needed. Run `rm -rf obj_dir` between testbenches (different
-top modules in the same `obj_dir` will conflict). Testbenches call `$fatal` on failure and are self-checking
-(look for an `errors` counter and `$display` summary at the end).
+To run another core unit testbench, replace both the top module name and the two source paths with one of
+the following pairs, then rebuild after `rm -rf obj_dir` (different tops must not share the same
+`obj_dir`):
+
+| Top module | DUT / TB sources |
+|---|---|
+| `tb_LifNeuron` | `spikenaut-core-sv/rtl/LifNeuron.sv` + `spikenaut-core-sv/tb/tb_LifNeuron.sv` |
+| `tb_WeightRam` | `spikenaut-core-sv/rtl/WeightRam.sv` + `spikenaut-core-sv/tb/tb_WeightRam.sv` |
+| `tb_NeuronParamRam` | `spikenaut-core-sv/rtl/NeuronParamRam.sv` + `spikenaut-core-sv/tb/tb_NeuronParamRam.sv` |
+| `tb_StdpController` | `spikenaut-core-sv/rtl/StdpController.sv` + `spikenaut-core-sv/tb/tb_StdpController.sv` |
+
+Testbenches call `$fatal` on failure and are self-checking (look for an `errors` counter and `$display`
+summary at the end).
 
 **Vivado (when available):**
 
@@ -74,18 +105,19 @@ python scripts/dedup_guardian.py --radar radar.md --threshold 0.85   # also writ
 ## Architecture notes
 
 - **Compile order matters** and is fixed by dependency direction: `lib_bridge` → `lib_core` → `lib_soc` /
-  `lib_synapse`. `spikenaut-soc-sv/rtl` and `synapse-link-hdl/examples/basys3` only ever *instantiate*
-  core/bridge modules — they must never contain their own copies.
+  `lib_synapse`. `spikenaut-soc-sv/rtl` and `synapse-link-hdl/examples/basys3` should only *instantiate*
+  core/bridge modules and should not contain their own copies; if a SoC- or demo-only wrapper needs new
+  logic, give it a distinct module name rather than cloning a core/bridge implementation.
 - The two `Basys3_Top.sv` files (SoC vs. synapse demo) are deliberately separate top-level integrations
   with different module names (`spikenaut_soc_basys3_top` vs `synapse_demo_basys3_top`); this is not a
   duplicate the Guardian should flag as long as the module names stay distinct.
 - Testbenches drive/sample stimulus on `negedge clk` to stay clear of the DUTs' `posedge`-triggered
   `always_ff` blocks — follow the same convention in new testbenches.
-- UART default `DATA_WIDTH` is 8 (matches the wire protocol); this parameter is intentionally propagated
-  through `UartRx`/`UartTx`/`SiliconBridge` even though the protocol is fixed at 8-bit framing (see
-  `docs/pr-response-checklist.md` for the review history behind this).
-- Licensing: dual MIT/Apache-2.0. Every source file (`.sv`, `.tcl`, `.xdc`, docs) carries an
-  `SPDX-License-Identifier: MIT OR Apache-2.0` header — include it on any new file.
+- Universal asynchronous receiver/transmitter (UART) default `DATA_WIDTH` is 8 (matches the wire protocol);
+  this parameter is intentionally propagated through `UartRx`/`UartTx`/`SiliconBridge` even though the
+  protocol is fixed at 8-bit framing.
+- Licensing: dual MIT/Apache-2.0. Every source file (`.sv`, `.tcl`, `.xdc`, docs) carries a Software Package
+  Data Exchange (SPDX) header `SPDX-License-Identifier: MIT OR Apache-2.0` — include it on any new file.
 
 ## Issue tracking
 
