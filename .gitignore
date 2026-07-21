@@ -10,6 +10,12 @@
 !.beads/hooks/
 
 
-#Ignore cursor AI rules
+#Ignore AI directories tools
 .cursor/
 .codacy/
+.mimocode/
+.opencode/
+.ai/
+.junie/
+.kiro/
+.cline/
