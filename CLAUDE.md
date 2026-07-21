@@ -1,10 +1,9 @@
-<!-- Software Package Data Exchange (SPDX) License-Identifier: MIT OR Apache-2.0 -->
+<!-- Software Package Data Exchange (SPDX) License-Identifier: Massachusetts Institute of Technology (MIT) OR Apache-2.0 -->
 <!-- Last updated: 2026-07-21 -->
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-Detailed build steps live in `docs/agent/build-and-test.md`; architecture and issue tracking live
-in `docs/agent/architecture.md`.
+Detailed build, architecture, and issue-tracking notes live in `AGENTS.md`.
 
 ## Identity
 
@@ -58,10 +57,10 @@ Each `.sv` file starts with a header declaring its canonical source, e.g.:
 
 The **Deduplication Guardian** (`scripts/dedup_guardian.py`, CI via
 `.github/workflows/dedup-guardian.yml`) fails PRs that introduce a second `module Name` for a
-registered module. Near-duplicates are review-only via `--radar` (see
-`docs/agent/build-and-test.md`).
+registered module. Near-duplicates are review-only via `--radar` (see `AGENTS.md`).
 
 ## Next
 
-- Build, simulate, and dedup commands: `docs/agent/build-and-test.md`
-- Compile order, UART notes, licensing, issue tracking: `docs/agent/architecture.md`
+- Build and simulate: see `AGENTS.md` section **Build and test**.
+- Compile order and licensing: see `AGENTS.md` section **Architecture notes**.
+- Issue tracking with `bd`: see `AGENTS.md` section **Issue tracking**.
