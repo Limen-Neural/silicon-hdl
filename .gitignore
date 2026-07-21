@@ -9,8 +9,7 @@
 # Keep hooks tracked
 !.beads/hooks/
 
-
-#Ignore AI directories tools
+# Ignore AI directories tools
 .cursor/
 .codacy/
 .mimocode/

@@ -26,9 +26,10 @@ Each `.sv` file in the four libraries starts with a header comment declaring its
 
 The **Deduplication Guardian** (`scripts/dedup_guardian.py`, enforced in CI via
 `.github/workflows/dedup-guardian.yml`) parses these headers and fails any PR that introduces a second
-`module Name` definition for a registered module, or a near-duplicate implementation file. Never copy an
-RTL module between directories — instead have the new location instantiate/import the canonical one, or
-if genuinely new logic is needed, give it a new module name.
+`module Name` definition for a registered module. Near-duplicate implementation files are not a strict
+failure — they are surfaced for review via the `--radar` report (see below). Never copy an RTL module
+between directories — instead have the new location instantiate/import the canonical one, or if genuinely
+new logic is needed, give it a new module name.
 
 ## Build & test
 
@@ -58,8 +59,10 @@ vivado -mode batch -source scripts/build_soc.tcl   # synth + implement + write b
 vivado -mode batch -source scripts/sim_core.tcl     # runs all core unit testbenches (tb_LifNeuron, tb_WeightRam, tb_NeuronParamRam, tb_StdpController)
 ```
 
-Both scripts hardcode their source-file lists (no globbing beyond constraints) so that library ownership
-stays explicit — when adding a new RTL or testbench file, add it to the relevant `read_verilog -sv` list.
+`build_soc.tcl` hardcodes its RTL source-file lists so that library ownership stays explicit — when adding
+a new RTL file, add it to the relevant `read_verilog -sv` list. `sim_core.tcl` hardcodes its RTL lists the
+same way but discovers testbench files under `spikenaut-core-sv/tb` via glob; new testbenches are picked up
+automatically, but their top module still needs to be added to `core_tb_tops` to actually run.
 
 **Deduplication check** — run before committing any RTL change:
 
@@ -90,4 +93,6 @@ This project uses **bd (beads)** for issue tracking — see the beads section in
 loaded into your context (run `bd prime` if you need the full command reference). Do not use TodoWrite or
 markdown TODO lists in this repo.
 
-Linear/GitHub issue tracking preferred under Limen-Neural teams for Linear.    GitHub issue will be under Limen-Neural/silicon-hdl.
+`bd` is the source of truth for issue tracking in this repo; Linear and GitHub Issues are used for
+cross-team visibility — use Linear for Limen-Neural team issues, and GitHub Issues under
+Limen-Neural/silicon-hdl.
