@@ -1,9 +1,12 @@
-<!-- Software Package Data Exchange (SPDX) License-Identifier: Massachusetts Institute of Technology (MIT) or Apache-2.0 -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 <!-- Last updated: 2026-07-21 -->
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-Detailed build, architecture, and issue-tracking notes live in `AGENTS.md`.
+@AGENTS.md
+
+This file provides Claude Code-specific guidance for the `silicon-hdl` repository.
+Shared build, architecture, and issue-tracking rules are imported from `AGENTS.md` above
+(via the `@AGENTS.md` import, which Claude Code loads at session start).
 
 ## Identity
 
@@ -37,8 +40,9 @@ and propose the smallest safe change rather than rewriting library ownership.
 
 `silicon-hdl` is a deduplicated, Vivado-ready SystemVerilog monorepo for neuromorphic / spiking
 neural network (SNN) field-programmable gate array (FPGA) primitives, targeting Basys 3
-(Artix-7, `xc7a35tcpg236-1`). Four independent libraries share a single-source-of-truth rule:
-no module is defined in more than one place.
+(Artix-7, `xc7a35tcpg236-1`). It is organized as four separately owned libraries with a fixed
+dependency order (`lib_bridge` → `lib_core` → `lib_soc` / `lib_synapse`) and a strict
+single-source-of-truth rule: no module is defined in more than one place.
 
 | Library | Path | Contents |
 |---|---|---|
@@ -57,8 +61,5 @@ Each `.sv` file starts with a header declaring its canonical source, e.g.:
 
 The **Deduplication Guardian** (`scripts/dedup_guardian.py`, CI via
 `.github/workflows/dedup-guardian.yml`) fails PRs that introduce a second `module Name` for a
-registered module. Near-duplicates are review-only via `--radar` (see `AGENTS.md`).
-
-## Next
-
-See `AGENTS.md` for build steps, architecture notes, and issue-tracking rules.
+registered module. Near-duplicates are review-only via `--radar` (see the Deduplication check
+section imported from AGENTS.md).

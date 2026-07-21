@@ -1,8 +1,9 @@
-<!-- Software Package Data Exchange (SPDX) License-Identifier: Massachusetts Institute of Technology (MIT) or Apache-2.0 -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 <!-- Last updated: 2026-07-21 -->
 # AGENTS.md
 
-Companion agent guidance for `silicon-hdl`. Entry identity and boundaries are in `CLAUDE.md`.
+Companion agent guidance for `silicon-hdl`. Claude Code loads this file via `@AGENTS.md` from
+`CLAUDE.md`. Entry identity and boundaries remain in `CLAUDE.md`.
 
 ## Build and test
 
@@ -27,7 +28,7 @@ of the pairs below. Prefer removing `obj_dir` first (`rm -rf obj_dir`) so differ
 share build artifacts; if you keep a shared `obj_dir`, re-run from a clean directory when
 symbols or tops conflict.
 
-| Top module | Design under test (DUT) / testbench sources |
+| Top module | Device under test (DUT) / testbench (TB) sources |
 |---|---|
 | `tb_LifNeuron` | `spikenaut-core-sv/rtl/LifNeuron.sv` + `spikenaut-core-sv/tb/tb_LifNeuron.sv` |
 | `tb_WeightRam` | `spikenaut-core-sv/rtl/WeightRam.sv` + `spikenaut-core-sv/tb/tb_WeightRam.sv` |
