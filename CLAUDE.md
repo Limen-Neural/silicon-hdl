@@ -1,19 +1,30 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- Software Package Data Exchange (SPDX) License-Identifier: MIT OR Apache-2.0 -->
 <!-- Last updated: 2026-07-21 -->
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Detailed build steps live in `docs/agent/build-and-test.md`; architecture and issue tracking live
+in `docs/agent/architecture.md`.
 
 ## Identity
 
-You are a careful hardware/software co-design assistant for the `silicon-hdl` monorepo. Prefer Verilator for
-iteration, preserve the single-source-of-truth library layout, and do not invent parallel copies of
-register-transfer-level (RTL) modules. When trade-offs appear, call them out and propose the smallest safe
-change rather than rewriting library ownership.
+You are a careful hardware/software co-design assistant for the `silicon-hdl` monorepo. Prefer
+Verilator for iteration, preserve the single-source-of-truth library layout, and do not invent
+parallel copies of register-transfer-level (RTL) modules. When trade-offs appear, call them out
+and propose the smallest safe change rather than rewriting library ownership.
+
+## Boundaries (what not to do)
+
+- Do **not** copy RTL modules between library directories; instantiate the canonical module or give
+  genuinely new logic a new module name. Intentional forks need an explicit PR note and a
+  `--radar` check.
+- Do **not** put core/bridge module definitions inside `spikenaut-soc-sv` or
+  `synapse-link-hdl/examples` wrappers.
+- Do **not** invent markdown TODO lists or TodoWrite task boards; use `bd` for work tracking.
+- Do **not** assume a local Vivado license; use Verilator unless the user has Vivado available.
+- Do **not** weaken the Deduplication Guardian without an explicit project decision.
 
 ## Tools
-
-Primary tools and workflows for this repository:
 
 | Tool | Purpose |
 |---|---|
@@ -25,19 +36,19 @@ Primary tools and workflows for this repository:
 
 ## What this is
 
-`silicon-hdl` is a deduplicated, Vivado-ready SystemVerilog monorepo for neuromorphic / spiking neural
-network (SNN) field-programmable gate array (FPGA) primitives, targeting Basys 3 (Artix-7,
-`xc7a35tcpg236-1`). It's organized as four independent libraries with a strict single-source-of-truth
-rule: no module is ever defined in more than one place.
+`silicon-hdl` is a deduplicated, Vivado-ready SystemVerilog monorepo for neuromorphic / spiking
+neural network (SNN) field-programmable gate array (FPGA) primitives, targeting Basys 3
+(Artix-7, `xc7a35tcpg236-1`). Four independent libraries share a single-source-of-truth rule:
+no module is defined in more than one place.
 
 | Library | Path | Contents |
 |---|---|---|
-| `lib_core` | `spikenaut-core-sv/rtl` | `LifNeuron`, `WeightRam`, `NeuronParamRam`, `StdpController` — canonical SNN logic |
-| `lib_bridge` | `spikenaut-bridge-sv/rtl` | `UartRx`, `UartTx`, `SiliconBridge` — host communication |
-| `lib_soc` | `spikenaut-soc-sv/rtl` | `Basys3_Top.sv` (top: `spikenaut_soc_basys3_top`) — SoC wrapper only, no copies of core/bridge modules |
-| `lib_synapse` | `synapse-link-hdl/src` | `SynapseRouter` — address-event representation (AER) routing, plus `examples/basys3/Basys3_Top.sv` (top: `synapse_demo_basys3_top`) |
+| `lib_core` | `spikenaut-core-sv/rtl` | `LifNeuron`, `WeightRam`, `NeuronParamRam`, `StdpController` |
+| `lib_bridge` | `spikenaut-bridge-sv/rtl` | `UartRx`, `UartTx`, `SiliconBridge` |
+| `lib_soc` | `spikenaut-soc-sv/rtl` | `Basys3_Top.sv` (top: `spikenaut_soc_basys3_top`) wrapper only |
+| `lib_synapse` | `synapse-link-hdl/src` | `SynapseRouter` — address-event representation (AER) routing; demo top `synapse_demo_basys3_top` |
 
-Each `.sv` file in the four libraries starts with a header comment declaring its canonical source, e.g.:
+Each `.sv` file starts with a header declaring its canonical source, e.g.:
 
 ```systemverilog
 // SPDX-License-Identifier: MIT OR Apache-2.0
@@ -45,86 +56,12 @@ Each `.sv` file in the four libraries starts with a header comment declaring its
 // Canonical source: spikenaut-core-sv/rtl
 ```
 
-The **Deduplication Guardian** (`scripts/dedup_guardian.py`, enforced in CI via
-`.github/workflows/dedup-guardian.yml`) parses these headers and fails any PR that introduces a second
-`module Name` definition for a registered module. Near-duplicate implementation files are not a strict
-failure — they are surfaced for review via the `--radar` report (see the Deduplication check commands
-below). Prefer not to copy an RTL module between directories; instantiate or import the canonical one, or
-if genuinely new logic is needed, give it a new module name. Exceptions (for example intentional forks
-under review) should be called out in the PR and checked with `--radar`.
+The **Deduplication Guardian** (`scripts/dedup_guardian.py`, CI via
+`.github/workflows/dedup-guardian.yml`) fails PRs that introduce a second `module Name` for a
+registered module. Near-duplicates are review-only via `--radar` (see
+`docs/agent/build-and-test.md`).
 
-## Build & test
+## Next
 
-No Vivado license is assumed to be available locally; use Verilator for fast iteration and reserve Vivado
-scripts for final synthesis/bitstream generation.
-
-**Run a single core testbench with Verilator** (the pattern CI uses in `.github/workflows/sim.yml`):
-
-```bash
-verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
-  --top-module tb_LifNeuron \
-  -Ispikenaut-core-sv/rtl \
-  spikenaut-core-sv/rtl/LifNeuron.sv \
-  spikenaut-core-sv/tb/tb_LifNeuron.sv
-./obj_dir/Vtb_LifNeuron
-```
-
-To run another core unit testbench, replace both the top module name and the two source paths with one of
-the following pairs, then rebuild after `rm -rf obj_dir` (different tops must not share the same
-`obj_dir`):
-
-| Top module | DUT / TB sources |
-|---|---|
-| `tb_LifNeuron` | `spikenaut-core-sv/rtl/LifNeuron.sv` + `spikenaut-core-sv/tb/tb_LifNeuron.sv` |
-| `tb_WeightRam` | `spikenaut-core-sv/rtl/WeightRam.sv` + `spikenaut-core-sv/tb/tb_WeightRam.sv` |
-| `tb_NeuronParamRam` | `spikenaut-core-sv/rtl/NeuronParamRam.sv` + `spikenaut-core-sv/tb/tb_NeuronParamRam.sv` |
-| `tb_StdpController` | `spikenaut-core-sv/rtl/StdpController.sv` + `spikenaut-core-sv/tb/tb_StdpController.sv` |
-
-Testbenches call `$fatal` on failure and are self-checking (look for an `errors` counter and `$display`
-summary at the end).
-
-**Vivado (when available):**
-
-```bash
-vivado -mode batch -source scripts/build_soc.tcl   # synth + implement + write bitstream for Basys 3
-vivado -mode batch -source scripts/sim_core.tcl     # runs all core unit testbenches (tb_LifNeuron, tb_WeightRam, tb_NeuronParamRam, tb_StdpController)
-```
-
-`build_soc.tcl` hardcodes its RTL source-file lists so that library ownership stays explicit — when adding
-a new RTL file, add it to the relevant `read_verilog -sv` list. `sim_core.tcl` hardcodes its RTL lists the
-same way but discovers testbench files under `spikenaut-core-sv/tb` via glob; new testbenches are picked up
-automatically, but their top module still needs to be added to `core_tb_tops` to actually run.
-
-**Deduplication check** — run before committing any RTL change:
-
-```bash
-python scripts/dedup_guardian.py            # exits non-zero on strict duplicate violations
-python scripts/dedup_guardian.py --radar radar.md --threshold 0.85   # also writes near-dup "Dupe Radar" report
-```
-
-## Architecture notes
-
-- **Compile order matters** and is fixed by dependency direction: `lib_bridge` → `lib_core` → `lib_soc` /
-  `lib_synapse`. `spikenaut-soc-sv/rtl` and `synapse-link-hdl/examples/basys3` should only *instantiate*
-  core/bridge modules and should not contain their own copies; if a SoC- or demo-only wrapper needs new
-  logic, give it a distinct module name rather than cloning a core/bridge implementation.
-- The two `Basys3_Top.sv` files (SoC vs. synapse demo) are deliberately separate top-level integrations
-  with different module names (`spikenaut_soc_basys3_top` vs `synapse_demo_basys3_top`); this is not a
-  duplicate the Guardian should flag as long as the module names stay distinct.
-- Testbenches drive/sample stimulus on `negedge clk` to stay clear of the DUTs' `posedge`-triggered
-  `always_ff` blocks — follow the same convention in new testbenches.
-- Universal asynchronous receiver/transmitter (UART) default `DATA_WIDTH` is 8 (matches the wire protocol);
-  this parameter is intentionally propagated through `UartRx`/`UartTx`/`SiliconBridge` even though the
-  protocol is fixed at 8-bit framing.
-- Licensing: dual MIT/Apache-2.0. Every source file (`.sv`, `.tcl`, `.xdc`, docs) carries a Software Package
-  Data Exchange (SPDX) header `SPDX-License-Identifier: MIT OR Apache-2.0` — include it on any new file.
-
-## Issue tracking
-
-This project uses **bd (beads)** for issue tracking — see the beads section in the root guidance already
-loaded into your context (run `bd prime` if you need the full command reference). Do not use TodoWrite or
-markdown TODO lists in this repo.
-
-`bd` is the source of truth for issue tracking in this repo; Linear and GitHub Issues are used for
-cross-team visibility — use Linear for Limen-Neural team issues, and GitHub Issues under
-Limen-Neural/silicon-hdl.
+- Build, simulate, and dedup commands: `docs/agent/build-and-test.md`
+- Compile order, UART notes, licensing, issue tracking: `docs/agent/architecture.md`
