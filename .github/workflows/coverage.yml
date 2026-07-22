@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# .github/workflows/coverage.yml
+# Phase A4 / issue #21: Python coverage for Deduplication Guardian (+ scripts).
+# Free ubuntu-latest only. Codecov/Codacy upload best-effort when secrets exist.
+
+name: Python Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest with coverage
+        run: pytest --cov=scripts --cov-report=xml:coverage.xml --cov-report=term
+
+      - name: Upload coverage.xml artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: error
+
+      # Best-effort external uploads (skip quietly when secrets missing).
+      - name: Upload to Codecov
+        continue-on-error: true
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload to Codacy
+        continue-on-error: true
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          CODACY_API_TOKEN: ${{ secrets.CODACY_API_TOKEN }}
+        run: |
+          if [ -z "${CODACY_PROJECT_TOKEN:-}" ] && [ -z "${CODACY_API_TOKEN:-}" ]; then
+            echo "No Codacy coverage secret set; skipping upload."
+            exit 0
+          fi
+          bash <(curl -Ls https://coverage.codacy.com/get.sh) report \
+            --force-coverage-parser cobertura \
+            -r coverage.xml
