@@ -10,6 +10,7 @@
 
 set -euo pipefail
 
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
@@ -18,7 +19,7 @@ for arg in "$@"; do
   case "$arg" in
     --vivado) RUN_VIVADO=1 ;;
     -h|--help)
-      sed -n '2,12p' "$0"
+      sed -n '2,12p' "$SCRIPT_PATH"
       exit 0
       ;;
     *)
