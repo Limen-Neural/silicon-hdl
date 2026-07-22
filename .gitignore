@@ -68,3 +68,13 @@ hs_err_pid*
 vivado*.backup.*
 # Dedup guardian local radar report
 radar.md
+
+# Python coverage (pytest-cov / issue #21)
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
