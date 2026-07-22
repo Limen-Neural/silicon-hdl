@@ -22,7 +22,8 @@ synthesis and bitstream generation.
 **Optional Vivado CI** (self-hosted only, never a free-runner required check):
 
 - Workflow: `.github/workflows/vivado-ci.yml` (issue #12 / epic #23 Phase B)
-- Triggers: `workflow_dispatch`, or PR label **`vivado-ci`**
+- Triggers: `workflow_dispatch`, or PR **`labeled`** with exact label **`vivado-ci`**
+  (re-run requires remove/re-add label or dispatch — not every push)
 - Runner labels: `self-hosted`, `vivado` (local: `~/actions-runner/silicon-hdl-runner`)
 
 
