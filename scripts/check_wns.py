@@ -9,16 +9,34 @@ import sys
 from pathlib import Path
 
 
-def _parse_table_slacks(text: str) -> tuple[float | None, float | None]:
-    """Parse WNS/WHS from Design Timing Summary table when present."""
+def _parse_design_timing_summary(text: str) -> tuple[float | None, float | None]:
+    """Parse WNS/WHS from the Design Timing Summary data row.
+
+    Vivado column order (Design Timing Summary):
+      WNS  TNS  TNS Failing Endpoints  TNS Total Endpoints  WHS  THS  ...
+    """
+    # Prefer the Design Timing Summary block (not Intra Clock Table).
+    block = re.search(
+        r"\|\s*Design Timing Summary\b.*?$"
+        r".*?WNS\(ns\).*?WHS\(ns\).*?\n"
+        r"[-\s|]+\n"
+        r"\s*([-\d.]+)\s+([-\d.]+)\s+(\S+)\s+(\S+)\s+([-\d.]+)",
+        text,
+        re.DOTALL | re.MULTILINE,
+    )
+    if block:
+        return float(block.group(1)), float(block.group(5))
+
+    # Fallback: first full row that has WNS + two endpoint cols + WHS.
     match = re.search(
-        r"WNS\(ns\)\s+TNS\(ns\).*?WHS\(ns\).*?\n[-\s|]+\n\s*"
-        r"([-\d.]+)\s+([-\d.]+)\s+\S+\s+([-\d.]+)",
+        r"WNS\(ns\).*?WHS\(ns\).*?\n[-\s|]+\n"
+        r"\s*([-\d.]+)\s+([-\d.]+)\s+\S+\s+\S+\s+([-\d.]+)",
         text,
         re.DOTALL,
     )
     if match:
         return float(match.group(1)), float(match.group(3))
+
     match = re.search(
         r"WNS\(ns\)\s+TNS\(ns\).*?\n[-\s]+\n\s*([-\d.]+)",
         text,
@@ -41,7 +59,7 @@ def _parse_prose_slack(text: str, label: str) -> float | None:
 
 
 def _resolve_slacks(text: str) -> tuple[float | None, float | None]:
-    wns, whs = _parse_table_slacks(text)
+    wns, whs = _parse_design_timing_summary(text)
     if wns is None:
         wns = _parse_prose_slack(text, "WNS")
     if whs is None:
@@ -75,8 +93,10 @@ def main() -> int:
         print(f"check_wns: could not parse WNS/WHS from {path}; skipping gate")
         return 0
 
-    failed = _check_slack("WNS", wns, path) or _check_slack("WHS", whs, path)
-    if failed:
+    # Always evaluate both so logs show WNS and WHS even when one fails.
+    wns_failed = _check_slack("WNS", wns, path)
+    whs_failed = _check_slack("WHS", whs, path)
+    if wns_failed or whs_failed:
         return 1
     print("check_wns: OK")
     return 0

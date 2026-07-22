@@ -2,8 +2,9 @@
 # .github/workflows/vivado-ci.yml
 # Phase B / issue #12: optional Vivado synth+sim on self-hosted runner.
 # NOT a required free-runner check.
-# Triggers: workflow_dispatch, or PR event labeled with exact label vivado-ci
-# (labeled only — no auto re-run on synchronize once labeled).
+# Triggers: workflow_dispatch, or PR labeled with exact label vivado-ci
+# (the labeled event must be the vivado-ci label itself — not any label while
+# vivado-ci is already present).
 
 name: Vivado CI
 
@@ -15,13 +16,19 @@ on:
 permissions:
   contents: read
 
+# One Vivado job at a time per ref (license + single self-hosted runner).
+concurrency:
+  group: vivado-ci-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   vivado:
-    # Label-gated for PRs (exact match); always run on manual dispatch.
+    # Dispatch always; PR only when the label that was just applied is vivado-ci.
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
-       contains(github.event.pull_request.labels.*.name, 'vivado-ci'))
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'vivado-ci')
     runs-on: [self-hosted, vivado]
     timeout-minutes: 90
     steps:
@@ -39,23 +46,30 @@ jobs:
           command -v vivado
           vivado -version | head -5
 
-          # Prefer env/runner-provided license (node-locked path or port@server).
+          # Prefer env/runner-provided license (file, dir, colon-list, or port@server).
           if [ -z "${XILINXD_LICENSE_FILE:-}" ]; then
             XILINXD_LICENSE_FILE="${HOME}/.Xilinx/Xilinx.lic"
           fi
-          # Only require a real file when the value looks like a local path
-          # (floating licenses use port@host and must not use test -f).
-          case "${XILINXD_LICENSE_FILE}" in
-            *@*)
-              echo "Using floating/server license: ${XILINXD_LICENSE_FILE}"
-              ;;
-            *)
-              test -f "${XILINXD_LICENSE_FILE}" || {
-                echo "Missing Xilinx license file at ${XILINXD_LICENSE_FILE}"
-                exit 1
-              }
-              ;;
-          esac
+
+          # Validate each PATH-like entry: allow file, directory, or port@host.
+          IFS=':' read -r -a _lic_entries <<< "${XILINXD_LICENSE_FILE}"
+          for _entry in "${_lic_entries[@]}"; do
+            [ -n "${_entry}" ] || continue
+            case "${_entry}" in
+              *@*)
+                echo "Using floating/server license entry: ${_entry}"
+                ;;
+              *)
+                if [ -f "${_entry}" ] || [ -d "${_entry}" ]; then
+                  echo "Using local license entry: ${_entry}"
+                else
+                  echo "Missing Xilinx license path entry: ${_entry}"
+                  exit 1
+                fi
+                ;;
+            esac
+          done
+
           {
             echo "XILINXD_LICENSE_FILE=${XILINXD_LICENSE_FILE}"
             echo "LM_LICENSE_FILE=${LM_LICENSE_FILE:-${XILINXD_LICENSE_FILE}}"
