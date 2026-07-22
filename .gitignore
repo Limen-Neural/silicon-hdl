@@ -78,3 +78,5 @@ htmlcov/
 __pycache__/
 *.py[cod]
 
+# Systemverilog AI generated lessons
+lessons/

@@ -88,8 +88,9 @@ do not redefine them.
 | AER routing primitive | `SynapseRouter` and its demo integration |
 | Board integration tops | Thin Basys 3 tops only; pin/constraint ownership under `constraints/` |
 | Vivado/Verilator flows | Scripts and CI hooks that build/sim **this** RTL tree |
+| Vivado report **gate** in this repo | `scripts/check_wns.py` + `.github/workflows/vivado-ci.yml` fail the optional self-hosted job when WNS/WHS &lt; 0 |
 | Module ownership map | README table + guardian; renames stay unique across the monorepo |
-| Hardware interface contracts | Bit widths, reset polarity, RAM layouts, UART frame shape as implemented in RTL |
+| Hardware interface contracts | Bit widths, reset polarity, RAM layouts, UART **byte** stream as implemented in RTL (not a full host multi-byte protocol) |
 
 ---
 
@@ -103,7 +104,8 @@ do not redefine them.
 | Online / offline training loops | `plasticity-lab` |
 | Reward / risk modulators and `Environment` | `limbic-critic` |
 | Process orchestration / daemon lifecycle | `brainstem-daemon` |
-| Host Q8.8 encode, `.mem` writers, host UART client, WNS parsers | **`silicon-bridge`** |
+| Host Q8.8 encode, `.mem` writers, host UART client | **`silicon-bridge`** |
+| Host-side Vivado **metrics aggregation** (e.g. library parse of timing reports for tooling) | **`silicon-bridge`** (`FpgaMetrics` and similar) — **not** this repo’s CI gate (`scripts/check_wns.py` stays in silicon-hdl) |
 | Domain adapters (trading PnL, mining telemetry, exchange feeds) | App / adapter repos — never this monorepo |
 | Full software SNN simulator | Out of scope |
 | NIR / HDF5 graph I/O | Shared IR crate (`nir-rs` if/when) — not reimplemented in HDL |
@@ -116,14 +118,14 @@ do not redefine them.
 `silicon-hdl` is an HDL monorepo. “Dependencies” here mean **inputs it may consume** and
 **tools it may rely on** — not Cargo crates.
 
-| Dependency / input | Why |
-|--------------------|-----|
-| Parameter `.mem` / hex images from `silicon-bridge` | `$readmemh` loads for weight and neuron-parameter RAMs |
-| UART traffic from host `silicon-bridge` (or compatible clients) | Stimulus / configuration / spike readout at the bridge |
-| Xilinx Vivado (optional) | Synthesis, implementation, bitstream for Basys 3 |
-| Verilator | Free-stack unit simulation of core testbenches |
-| Board constraints (`constraints/*.xdc`) | Pinout and timing for target FPGAs |
-| Documented interface contracts from `silicon-bridge` | Keep host export formats and RTL layouts aligned |
+| Dependency / input | Why | Status today |
+|--------------------|-----|--------------|
+| Parameter `.mem` / hex images from `silicon-bridge` | **Future / planned** host init: `$readmemh` or UART/write-port load of weight and neuron-parameter RAMs | **Not wired yet** — `WeightRam` / `NeuronParamRam` have no `$readmemh`; Basys 3 SoC top ties `we` low and leaves contents uninitialized |
+| UART traffic from host `silicon-bridge` (or compatible clients) | Physical UART byte pipe via `SiliconBridge` | **Raw RX-valid stimulus only** on current SoC demo (`bridge_rx_valid` → spike; payload ignored; `tx_send` tied off). Multi-byte configuration / spike readout is **future work**, not an existing protocol |
+| Xilinx Vivado (optional) | Synthesis, implementation, bitstream for Basys 3 | Available on self-hosted path |
+| Verilator | Free-stack unit simulation of core testbenches | Required free CI path |
+| Board constraints (`constraints/*.xdc`) | Pinout and timing for target FPGAs | Present |
+| Documented interface contracts from `silicon-bridge` | Keep host export formats and RTL layouts aligned as load/protocol paths land | Contract docs; integration still incomplete |
 
 Internal (within this monorepo only):
 
@@ -158,7 +160,8 @@ Internal (within this monorepo only):
 | **Core library (software)** | Neuron dynamics, network step, generic modulators, plasticity primitives | `neuromod` |
 | **Core library (hardware)** | Parameterized SNN + bridge **RTL modules** with single ownership | `lib_core`, `lib_bridge` **inside silicon-hdl** |
 | **Supervisor / app** | Daemon loop, IPC, service registry, environment adapters | `brainstem-daemon`, app crates |
-| **Deployment (host)** | Fixed-point export, host UART, CI timing gates | `silicon-bridge` |
+| **Deployment (host)** | Fixed-point export, host UART client, optional host metrics parse | `silicon-bridge` |
+| **Hardware CI (this repo)** | Optional self-hosted Vivado synth + **WNS/WHS gate** (`check_wns.py`) | `silicon-hdl` |
 | **Deployment / hardware** | Bitstream, board tops, constraints, FPGA-facing contracts | **`silicon-hdl`** (this repo) |
 
 Clarifications:
@@ -195,10 +198,16 @@ Clarifications:
 
 ### vs `silicon-bridge`
 
-- **silicon-bridge:** host-side deployment bridge (Q8.8, `.mem`, UART client, WNS parsing).
-- **silicon-hdl:** single source of truth for the RTL that those formats and frames target.
-- Widths, RAM layouts, reset polarity, and UART framing are **coordinated** across both
+- **silicon-bridge:** host-side deployment bridge (Q8.8, `.mem` writers, UART client,
+  optional host-side Vivado metrics aggregation such as `FpgaMetrics`).
+- **silicon-hdl:** single source of truth for the RTL those formats target, **and** the
+  in-repo Vivado timing gate (`scripts/check_wns.py` / `vivado-ci.yml`). Do not move that
+  gate into silicon-bridge.
+- Widths, RAM layouts, reset polarity, and UART **byte** framing are **coordinated** across both
   repos; RTL changes land only here; host format changes land only in `silicon-bridge`.
+- Today’s Basys 3 SoC demo is **not** an end-to-end `.mem` load + multi-byte host protocol
+  implementation (RAM `we` tied off; TX disabled). Treat load/config/readout as sequenced
+  future work, not current ownership of a working path.
 
 ### vs legacy `Spikenaut-Hardware`
 
@@ -277,12 +286,17 @@ Sibling boundary docs (for consistency when updating cross-links):
 
 ---
 
-## Validation checklist
+## Validation (planning coverage)
 
-- [x] Spikenaut-Hardware / silicon-hdl purpose documented
-- [x] Owns / does-not-own boundaries explicit
-- [x] Allowed and forbidden dependencies listed
-- [x] Core-library vs supervisor/app vs deployment/hardware explicit
-- [x] Domain leaks, migration risks, and sequencing questions recorded
-- [x] Output linkable from Linear LIM-9 (`docs/boundary-matrix.md`)
-- [x] Planning-only: no RTL / CI / consolidation changes in this deliverable
+This section records **what this document covers** for issue #3 / LIM-9. It is **not** a
+task board — track work in GitHub issues or beads (`bd`), not markdown checkboxes.
+
+Covered here in prose:
+
+1. **Purpose** — Spikenaut-Hardware / silicon-hdl FPGA SNN RTL role is stated above.
+2. **Owns / does-not-own** — tables under those headings.
+3. **Allowed and forbidden dependencies** — including honest “status today” for `.mem` and UART.
+4. **Layer boundaries** — core software vs supervisor/app vs deployment host vs hardware RTL.
+5. **Domain leaks, migration risks, sequencing** — dedicated sections above.
+6. **LIM-9 linkability** — this file path (`docs/boundary-matrix.md`) plus the Related tracking table.
+7. **Planning-only** — this PR deliverable does not change RTL, CI workflows, or consolidate repos.
