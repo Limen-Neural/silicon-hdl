@@ -275,10 +275,10 @@ acceptance. Clarifying comments only may be added on `SiliconBridge.sv`.
 
 | Resource | Link |
 |----------|------|
-| Issue #8 (open alignment + historical CI ask) | https://github.com/Limen-Neural/silicon-hdl/issues/8 |
-| Issue #10 (closed; similar doc/align scope) | https://github.com/Limen-Neural/silicon-hdl/issues/10 |
-| PR #11 foundational RTL correctness | https://github.com/Limen-Neural/silicon-hdl/pull/11 |
-| PR #31 Vivado CI (util/timing) | https://github.com/Limen-Neural/silicon-hdl/pull/31 |
-| silicon-bridge export traits | https://github.com/Limen-Neural/silicon-bridge/blob/main/src/fpga_export.rs |
-| silicon-bridge UART host | https://github.com/Limen-Neural/silicon-bridge/blob/main/src/fpga_bridge.rs |
-| silicon-bridge boundary matrix | https://github.com/Limen-Neural/silicon-bridge/blob/main/docs/boundary-matrix.md |
+| Issue #8 (open alignment + historical CI ask) | [silicon-hdl#8](https://github.com/Limen-Neural/silicon-hdl/issues/8) |
+| Issue #10 (closed; similar doc/align scope) | [silicon-hdl#10](https://github.com/Limen-Neural/silicon-hdl/issues/10) |
+| PR #11 foundational RTL correctness | [silicon-hdl#11](https://github.com/Limen-Neural/silicon-hdl/pull/11) |
+| PR #31 Vivado CI (util/timing) | [silicon-hdl#31](https://github.com/Limen-Neural/silicon-hdl/pull/31) |
+| silicon-bridge export traits | [`fpga_export.rs`](https://github.com/Limen-Neural/silicon-bridge/blob/main/src/fpga_export.rs) |
+| silicon-bridge UART host | [`fpga_bridge.rs`](https://github.com/Limen-Neural/silicon-bridge/blob/main/src/fpga_bridge.rs) |
+| silicon-bridge boundary matrix | [`docs/boundary-matrix.md`](https://github.com/Limen-Neural/silicon-bridge/blob/main/docs/boundary-matrix.md) |
