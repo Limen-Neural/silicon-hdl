@@ -19,8 +19,8 @@ set project_name  spikenaut_sim_core
 set project_dir   [file join $repo_root vivado_projects $project_name]
 set part          xc7a35tcpg236-1
 
-create_project -force $project_name $project_dir -part $part \
-    -ip false -rtl_kernel false
+# Vivado 2026.1 rejects legacy -ip/-rtl_kernel boolean flags on create_project.
+create_project -force $project_name $project_dir -part $part
 
 set_property simulator_language Mixed [current_project]
 

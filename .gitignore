@@ -19,5 +19,52 @@
 .kiro/
 .cline/
 
+# AI skills
+.swarm/
+.worktrees/
+
 # Ignore pr review docs
 docs/pr-responses/
+
+# ---------------------------------------------------------------------------
+# Verilator
+# ---------------------------------------------------------------------------
+obj_dir/
+*.vcd
+*.fst
+
+# ---------------------------------------------------------------------------
+# Vivado / XSim local artifacts (never push these)
+# Project trees, bitstreams, logs/journals, sim snapshots, temp dirs
+# ---------------------------------------------------------------------------
+vivado_projects/
+.Xil/
+*.bit
+*.bin
+*.mcs
+*.prm
+*.ltx
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.wcfg
+*.debug
+*.dcp
+*.hwdef
+*.nky
+*.bmm
+*.mmi
+xsim.dir/
+xvlog.pb
+xelab.pb
+xsc.pb
+clockInfo.txt
+tight_setup_hold_times.txt
+usage_statistics*
+webtalk*
+hs_err_pid*
+vivado*.backup.*
+# Dedup guardian local radar report
+radar.md
