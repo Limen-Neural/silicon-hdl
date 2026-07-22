@@ -263,11 +263,11 @@ acceptance. Clarifying comments only may be added on `SiliconBridge.sv`.
 
 ### Follow-ups (out of scope for this doc PR)
 
-1. SoC protocol FSM implementing SiliconBridge v3.0 frames (or a revised version)
-   above `SiliconBridge`, with TX enabled and `tx_busy` respected.
-2. `$readmemh` (or UART load) of `parameters*.mem` into weight/threshold/leak RAMs.
-3. Multi-neuron array + spike bitmap packing for the 16-neuron host frame.
-4. Explicit address map for flattened weight matrix vs `WeightRam` depth.
+Future implementation work (track in GitHub issues or `bd`, not here) includes a SoC
+protocol FSM for SiliconBridge v3.0 frames above `SiliconBridge` with TX enabled and
+`tx_busy` respected; `$readmemh` or UART load of `parameters*.mem` into weight, threshold,
+and leak RAMs; multi-neuron array plus spike-bitmap packing for the 16-neuron host frame;
+and an explicit address map from the flattened weight matrix onto `WeightRam` depth.
 
 ---
 

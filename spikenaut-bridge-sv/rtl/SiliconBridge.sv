@@ -7,7 +7,8 @@
 // Documented 8b constraint; no longer misleading. See Uart*/tops.
 //
 // Protocol layering (see docs/interface-alignment.md, issue #8):
-//   - This module is a pure 8-bit UART byte pipe (start + DATA_WIDTH data + stop).
+//   - With product/default DATA_WIDTH=8 this is a UART byte pipe
+//     (start + DATA_WIDTH data + stop); DATA_WIDTH remains parameterized.
 //   - Default BAUD_RATE 115_200 matches silicon-bridge FpgaBridge (serialport).
 //   - No opcodes, sync bytes (e.g. host 0xAA), or multi-byte frames here.
 //   - Host "SiliconBridge v3.0" framing (0xAA + Q8.8 words + spike bitmap) is an
