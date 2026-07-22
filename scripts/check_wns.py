@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""Fail if Vivado timing_summary.rpt reports WNS or WHS < 0.
+"""
+Fail if Vivado timing_summary.rpt reports WNS or WHS < 0.
 
 Usage:
   python scripts/check_wns.py path/to/timing_summary.rpt
