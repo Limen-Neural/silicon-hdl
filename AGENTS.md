@@ -7,6 +7,15 @@ Companion agent guidance for `silicon-hdl`. Claude Code loads this file via `@AG
 
 ## Build and test
 
+**Local free-stack quality** (guardian + all four core Verilator TBs):
+
+```bash
+./scripts/quality.sh
+# optional Vivado sim + SoC build (requires source ~/Xilinx/env.sh):
+./scripts/quality.sh --vivado
+```
+
+
 No Vivado license is assumed locally. Prefer Verilator for iteration; reserve Vivado for
 synthesis and bitstream generation.
 
