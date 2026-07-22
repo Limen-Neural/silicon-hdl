@@ -48,7 +48,7 @@ park domain adapters (trading, mining, etc.).
 | Topology / train | Connectivity, plasticity, offline training | `synaptic-mesh`, `plasticity-lab` |
 | Reward / critic | Neuromodulator-style signals | `limbic-critic` |
 | Runtime host | Headless inference orchestration | `brainstem-daemon` |
-| Deployment (host bridge) | Q8.8 export, UART host, Vivado timing metrics | `silicon-bridge` |
+| Deployment (host bridge) | Q8.8 export, UART host, optional host metrics parse | `silicon-bridge` |
 | **Deployment / hardware (this repo)** | **SystemVerilog RTL, board tops, FPGA build** | **`silicon-hdl`** |
 
 ```text
@@ -145,8 +145,9 @@ Internal (within this monorepo only):
 - Domain-product logic (trading, mining, HFT adapters) in RTL, tops, or scripts
 - Copying or forking core/bridge modules into `spikenaut-soc-sv` or
   `synapse-link-hdl/examples` wrappers
-- Absorbing host-side Q8.8 conversion, `.mem` generation, or Vivado **report parsing**
-  (those stay in `silicon-bridge`)
+- Absorbing host-side Q8.8 conversion or `.mem` generation (those stay in `silicon-bridge`).
+  Host-side metrics aggregation may live in `silicon-bridge`; the **CI timing gate**
+  (`scripts/check_wns.py`) stays in this repo
 - Secrets, machine-local absolute paths, or licensed IP blobs committed without review
 - Collapsing this monorepo into a vague “catch-all hardware + software” ownership model
 - Weakening the Deduplication Guardian without an explicit project decision
