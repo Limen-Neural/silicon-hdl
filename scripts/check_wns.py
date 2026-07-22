@@ -10,11 +10,7 @@ from pathlib import Path
 
 
 def _parse_design_timing_summary(text: str) -> tuple[float | None, float | None]:
-    """Parse WNS/WHS from the Design Timing Summary data row.
-
-    Vivado column order (Design Timing Summary):
-      WNS  TNS  TNS Failing Endpoints  TNS Total Endpoints  WHS  THS  ...
-    """
+    """Parse WNS/WHS from Design Timing Summary (skip both TNS endpoint cols)."""
     # Prefer the Design Timing Summary block (not Intra Clock Table).
     block = re.search(
         r"\|\s*Design Timing Summary\b.*?$"
