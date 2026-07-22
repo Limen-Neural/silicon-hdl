@@ -93,8 +93,12 @@ operate on opaque 16-bit words whose host interpretation is unsigned Q8.8.
 **LIF semantics vs Q8.8 (unsigned):**
 
 - `membrane -= leak` (floor at 0), then on `spike_in` add `weight` with saturate to all-ones.
-- Spike when integrated membrane `>= threshold`.
-- Single-cycle refractory: membrane forced to 0 while `spike_out` is high.
+- Spike when integrated membrane `>= threshold`: on that clock edge `spike_out` goes high
+  while `membrane_potential` still holds the **threshold-crossing** value (`next_mem`).
+- **Refractory (next cycle):** when the previous `spike_out` is observed, the FSM forces
+  `next_mem = 0` and clears `spike_out` on the following edge — so membrane reset is
+  **one cycle after** the spike pulse is generated, not simultaneous with it. A future
+  UART potential-readback FSM must sample carefully on spike cycles.
 - These ops are consistent with **non-negative** Q8.8 words from
   `FixedPointEncode`. Negative host values must not be written into these RAMs
   via the export path.
