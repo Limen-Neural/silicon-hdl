@@ -50,9 +50,9 @@ Raise automated quality **without** making Vivado a required free-runner PR gate
 
 ## Non-goals (unchanged)
 
-* Required Vivado/Basys 3 for every free-runner PR
-* Docker Vivado before #12 is stable (B3 remains later)
-* Native SV coverage in Codecov/Codacy as a hard gate
+- Required Vivado/Basys 3 for every free-runner PR
+- Docker Vivado before #12 is stable (B3 remains later)
+- Native SV coverage in Codecov/Codacy as a hard gate
 
 ## Success metrics (current)
 
@@ -65,7 +65,7 @@ Raise automated quality **without** making Vivado a required free-runner PR gate
 
 ## Related links
 
-* Epic: https://github.com/Limen-Neural/silicon-hdl/issues/23
-* Phase B issue: https://github.com/Limen-Neural/silicon-hdl/issues/12
-* Phase B PR: https://github.com/Limen-Neural/silicon-hdl/pull/31
-* Agent guidance: [`AGENTS.md`](../AGENTS.md) (build/test + optional Vivado CI notes)
+- Epic: [Limen-Neural/silicon-hdl#23](https://github.com/Limen-Neural/silicon-hdl/issues/23)
+- Phase B issue: [Limen-Neural/silicon-hdl#12](https://github.com/Limen-Neural/silicon-hdl/issues/12)
+- Phase B PR: [Limen-Neural/silicon-hdl#31](https://github.com/Limen-Neural/silicon-hdl/pull/31)
+- Agent guidance: [`AGENTS.md`](../AGENTS.md) (build/test + optional Vivado CI notes)
