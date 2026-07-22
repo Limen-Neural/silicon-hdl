@@ -1,0 +1,113 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# .github/workflows/vivado-ci.yml
+# Phase B / issue #12: optional Vivado synth+sim on self-hosted runner.
+# NOT a required free-runner check.
+# Triggers: workflow_dispatch, or PR labeled with exact label vivado-ci
+# (the labeled event must be the vivado-ci label itself — not any label while
+# vivado-ci is already present).
+
+name: Vivado CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+# One Vivado job at a time per ref (license + single self-hosted runner).
+concurrency:
+  group: vivado-ci-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vivado:
+    # Dispatch always; PR only when the label that was just applied is vivado-ci.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'vivado-ci')
+    runs-on: [self-hosted, vivado]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Verify Vivado environment
+        run: |
+          set -euo pipefail
+          if [ -f "${HOME}/Xilinx/env.sh" ]; then
+            # shellcheck disable=SC1091
+            source "${HOME}/Xilinx/env.sh"
+          fi
+          command -v vivado
+          vivado -version | head -5
+
+          # Prefer env/runner-provided license (file, dir, colon-list, or port@server).
+          if [ -z "${XILINXD_LICENSE_FILE:-}" ]; then
+            XILINXD_LICENSE_FILE="${HOME}/.Xilinx/Xilinx.lic"
+          fi
+
+          # Validate each PATH-like entry: allow file, directory, or port@host.
+          IFS=':' read -r -a _lic_entries <<< "${XILINXD_LICENSE_FILE}"
+          for _entry in "${_lic_entries[@]}"; do
+            [ -n "${_entry}" ] || continue
+            case "${_entry}" in
+              *@*)
+                echo "Using floating/server license entry: ${_entry}"
+                ;;
+              *)
+                if [ -f "${_entry}" ] || [ -d "${_entry}" ]; then
+                  echo "Using local license entry: ${_entry}"
+                else
+                  echo "Missing Xilinx license path entry: ${_entry}"
+                  exit 1
+                fi
+                ;;
+            esac
+          done
+
+          {
+            echo "XILINXD_LICENSE_FILE=${XILINXD_LICENSE_FILE}"
+            echo "LM_LICENSE_FILE=${LM_LICENSE_FILE:-${XILINXD_LICENSE_FILE}}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Vivado core simulation (sim_core.tcl)
+        run: |
+          set -euo pipefail
+          if [ -f "${HOME}/Xilinx/env.sh" ]; then
+            # shellcheck disable=SC1091
+            source "${HOME}/Xilinx/env.sh"
+          fi
+          vivado -mode batch -source scripts/sim_core.tcl
+
+      - name: Vivado SoC build (build_soc.tcl)
+        run: |
+          set -euo pipefail
+          if [ -f "${HOME}/Xilinx/env.sh" ]; then
+            # shellcheck disable=SC1091
+            source "${HOME}/Xilinx/env.sh"
+          fi
+          vivado -mode batch -source scripts/build_soc.tcl
+
+      - name: Gate on WNS/WHS when timing report present
+        run: |
+          set -euo pipefail
+          python3 scripts/check_wns.py \
+            vivado_projects/spikenaut_soc/output/timing_summary.rpt
+
+      - name: Upload Vivado reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: vivado-ci-reports
+          if-no-files-found: warn
+          path: |
+            vivado_projects/spikenaut_soc/output/*.rpt
+            vivado_projects/spikenaut_soc/output/*.log
+            vivado_projects/**/*.log
+            vivado*.log
+            *.jou
