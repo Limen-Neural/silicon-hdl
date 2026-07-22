@@ -5,6 +5,15 @@
 //
 // gh-14 5u3.7: DATA_WIDTH propagated to UARTs (default 8 matches serial protocol data bits).
 // Documented 8b constraint; no longer misleading. See Uart*/tops.
+//
+// Protocol layering (see docs/interface-alignment.md, issue #8):
+//   - With product/default DATA_WIDTH=8 this is a UART byte pipe
+//     (start + DATA_WIDTH data + stop); DATA_WIDTH remains parameterized.
+//   - Default BAUD_RATE 115_200 matches silicon-bridge FpgaBridge (serialport).
+//   - No opcodes, sync bytes (e.g. host 0xAA), or multi-byte frames here.
+//   - Host "SiliconBridge v3.0" framing (0xAA + Q8.8 words + spike bitmap) is an
+//     application protocol owned by the SoC/protocol FSM + silicon-bridge host,
+//     layered on top of rx_data/rx_valid and tx_data/tx_send/tx_busy.
 
 module SiliconBridge #(
     parameter int CLK_FREQ  = 100_000_000,
