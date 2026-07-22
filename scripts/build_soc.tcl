@@ -91,10 +91,16 @@ place_design
 route_design
 
 # ---------------------------------------------------------------------------
-# 7. Bitstream
+# 7. Reports (utilization + timing for CI gating)
 # ---------------------------------------------------------------------------
 set output_dir [file join $project_dir output]
 file mkdir $output_dir
+report_utilization -file [file join $output_dir utilization.rpt]
+report_timing_summary -file [file join $output_dir timing_summary.rpt]
+
+# ---------------------------------------------------------------------------
+# 8. Bitstream
+# ---------------------------------------------------------------------------
 write_bitstream -force [file join $output_dir ${project_name}.bit]
 
 puts "=== build_soc.tcl complete: bitstream written to $output_dir ==="

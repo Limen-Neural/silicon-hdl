@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# .github/workflows/vivado-ci.yml
+# Phase B / issue #12: optional Vivado synth+sim on self-hosted runner.
+# NOT a required free-runner check. Triggers: workflow_dispatch or label vivado-ci.
+
+name: Vivado CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize, reopened, opened]
+
+permissions:
+  contents: read
+
+jobs:
+  vivado:
+    # Label-gated for PRs; always run on manual dispatch.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       contains(join(github.event.pull_request.labels.*.name, ','), 'vivado-ci'))
+    runs-on: [self-hosted, vivado]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Verify Vivado environment
+        run: |
+          set -euo pipefail
+          if [ -f "${HOME}/Xilinx/env.sh" ]; then
+            # shellcheck disable=SC1091
+            source "${HOME}/Xilinx/env.sh"
+          fi
+          command -v vivado
+          vivado -version | head -5
+          test -n "${XILINXD_LICENSE_FILE:-}" || export XILINXD_LICENSE_FILE="${HOME}/.Xilinx/Xilinx.lic"
+          test -f "${XILINXD_LICENSE_FILE}" || {
+            echo "Missing Xilinx license at ${XILINXD_LICENSE_FILE}"
+            exit 1
+          }
+
+      - name: Vivado core simulation (sim_core.tcl)
+        run: |
+          set -euo pipefail
+          if [ -f "${HOME}/Xilinx/env.sh" ]; then
+            # shellcheck disable=SC1091
+            source "${HOME}/Xilinx/env.sh"
+          fi
+          vivado -mode batch -source scripts/sim_core.tcl
+
+      - name: Vivado SoC build (build_soc.tcl)
+        run: |
+          set -euo pipefail
+          if [ -f "${HOME}/Xilinx/env.sh" ]; then
+            # shellcheck disable=SC1091
+            source "${HOME}/Xilinx/env.sh"
+          fi
+          vivado -mode batch -source scripts/build_soc.tcl
+
+      - name: Gate on WNS when timing report present
+        run: |
+          set -euo pipefail
+          python3 scripts/check_wns.py \
+            vivado_projects/spikenaut_soc/output/timing_summary.rpt
+
+      - name: Upload Vivado reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vivado-ci-reports
+          if-no-files-found: warn
+          path: |
+            vivado_projects/spikenaut_soc/output/*.rpt
+            vivado_projects/spikenaut_soc/output/*.log
+            vivado_projects/**/*.log
+            vivado*.log
+            *.jou

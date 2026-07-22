@@ -19,6 +19,13 @@ Companion agent guidance for `silicon-hdl`. Claude Code loads this file via `@AG
 No Vivado license is assumed locally. Prefer Verilator for iteration; reserve Vivado for
 synthesis and bitstream generation.
 
+**Optional Vivado CI** (self-hosted only, never a free-runner required check):
+
+- Workflow: `.github/workflows/vivado-ci.yml` (issue #12 / epic #23 Phase B)
+- Triggers: `workflow_dispatch`, or PR label **`vivado-ci`**
+- Runner labels: `self-hosted`, `vivado` (local: `~/actions-runner/silicon-hdl-runner`)
+
+
 ### Verilator (core unit testbenches)
 
 Pattern used by CI in `.github/workflows/sim.yml`:
