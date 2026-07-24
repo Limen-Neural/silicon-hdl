@@ -62,11 +62,24 @@ if {[llength [glob -nocomplain [file join $core_tb *.sv]]] > 0} {
 # ---------------------------------------------------------------------------
 # (gh-14 5u3.8 addressed by making it run multiple; origin/main has the list
 # from #11 + testbenches added.)
-set core_tb_tops {tb_LifNeuron tb_WeightRam tb_NeuronParamRam tb_StdpController}
+set core_tb_tops {tb_LifNeuron tb_WeightRam tb_WeightRam_init tb_NeuronParamRam tb_NeuronParamRam_init tb_StdpController}
 
 foreach tb_top $core_tb_tops {
     set_property top $tb_top [get_filesets sim_1]
     set_property top_lib xil_defaultlib [get_filesets sim_1]
+
+    # INIT TBs: XSim CWD is the sim run directory, so pass absolute INIT paths
+    # (repo-root-relative defaults work for Verilator only).
+    if {$tb_top eq "tb_WeightRam_init"} {
+        set mem_abs [file normalize [file join $repo_root spikenaut-core-sv mem merged_v2_weights.mem]]
+        set_property generic "INIT=$mem_abs" [get_filesets sim_1]
+    } elseif {$tb_top eq "tb_NeuronParamRam_init"} {
+        set mem_abs [file normalize [file join $repo_root spikenaut-core-sv mem merged_v2_thresholds.mem]]
+        set_property generic "INIT=$mem_abs" [get_filesets sim_1]
+    } else {
+        # Clear any leftover generic from a prior top in this loop.
+        catch {set_property generic {} [get_filesets sim_1]}
+    }
 
     # Force re-elaboration when switching top modules to avoid stale
     # compilation artifacts / dirty directory issues in the sim fileset.

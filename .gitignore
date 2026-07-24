@@ -5,6 +5,7 @@
 .beads/export-state.json
 .beads/last-touched
 .beads/issues.jsonl
+.beads/.linear-sync.lock
 
 # Keep hooks tracked
 !.beads/hooks/

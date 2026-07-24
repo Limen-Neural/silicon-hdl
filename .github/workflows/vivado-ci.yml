@@ -1,17 +1,18 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 # .github/workflows/vivado-ci.yml
-# Phase B / issue #12: optional Vivado synth+sim on self-hosted runner.
-# NOT a required free-runner check.
-# Triggers: workflow_dispatch, or PR labeled with exact label vivado-ci
-# (the labeled event must be the vivado-ci label itself — not any label while
-# vivado-ci is already present).
+# Phase B / issue #12: Vivado synth+sim on self-hosted runner.
+# Auto-runs on same-repo PRs and workflow_dispatch. Job-level if: skips
+# fork PRs that leave this file alone. Residual risk: pull_request runs the
+# *head* workflow, so a fork that edits this yml can drop the gate — rely on
+# repo Actions "Require approval for all outside collaborators" (or runner
+# group restrictions) for true fork isolation. Not a free-runner required check.
 
 name: Vivado CI
 
 on:
   workflow_dispatch:
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -23,12 +24,12 @@ concurrency:
 
 jobs:
   vivado:
-    # Dispatch always; PR only when the label that was just applied is vivado-ci.
+    # Same-repo branches only. Fork PRs skip (no code checkout on host).
+    # Manual workflow_dispatch always allowed (trusted operator).
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
-       github.event.action == 'labeled' &&
-       github.event.label.name == 'vivado-ci')
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, vivado]
     timeout-minutes: 90
     steps:
