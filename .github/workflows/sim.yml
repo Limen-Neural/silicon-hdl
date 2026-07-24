@@ -48,6 +48,17 @@ jobs:
             spikenaut-core-sv/tb/tb_WeightRam.sv
           ./obj_dir/Vtb_WeightRam
 
+      - name: Run tb_WeightRam_init
+        run: |
+          rm -rf obj_dir
+          # INIT_FILE paths are repo-root relative (merged_v2 weights)
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module tb_WeightRam_init \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/WeightRam.sv \
+            spikenaut-core-sv/tb/tb_WeightRam_init.sv
+          ./obj_dir/Vtb_WeightRam_init
+
       - name: Run tb_NeuronParamRam
         run: |
           rm -rf obj_dir

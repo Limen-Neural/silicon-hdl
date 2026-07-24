@@ -4,11 +4,12 @@
 // Per-neuron parameter RAM (single value per address, e.g. threshold or leak for a neuron).
 // gh-14 5u3.6/5u3.7 (comment 5447): header now matches impl (stores ONE param per addr;
 // multiple param types like thresh/leak/weight use separate RAM instances or addressing in caller).
-// (Previously claimed multi-param storage including refrac/weight.)
+// Optional INIT_FILE: Q8.8 hex via $readmemh. Empty = undefined until host write.
 
 module NeuronParamRam #(
-    parameter int ADDR_WIDTH  = 8,
-    parameter int PARAM_WIDTH = 16
+    parameter int    ADDR_WIDTH  = 8,
+    parameter int    PARAM_WIDTH = 16,
+    parameter string INIT_FILE   = ""
 )(
     input  logic                   clk,
     input  logic                   rst_n,
@@ -19,6 +20,11 @@ module NeuronParamRam #(
 );
 
     (* ram_style = "block" *) logic [PARAM_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
+
+    initial begin
+        if (INIT_FILE != "")
+            $readmemh(INIT_FILE, mem);
+    end
 
     // Synchronous reset on dout (to use rst_n port and provide known value in sim).
     // Read-first semantics preserved (original contract): on write cycle, dout gets
