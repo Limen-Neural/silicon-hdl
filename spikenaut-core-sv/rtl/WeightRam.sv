@@ -5,14 +5,15 @@
 //
 // gh-14 5u3.6 (P1): added rst_n + dout reset (for sim safety + post-config).
 // Optional INIT_FILE: Q8.8 hex via $readmemh (sim + Vivado BRAM init).
-// Untyped string parameter (not `parameter string`) for Vivado UG901 construct support.
-// Default "NONE" — no load until a real path is passed. Host load remains long-term path.
-// $fopen/$error/$fatal are simulation-only; synthesis keeps $readmemh only (UG901).
+// Use SV `parameter string` (not bare untyped): `parameter INIT_FILE = "NONE"` is
+// only 32 bits wide, so longer paths truncate and $readmemh silently fails
+// (broke free-runner tb_WeightRam_init). Default "NONE" = no load.
+// $fopen/$error/$fatal are simulation-only; synthesis keeps $readmemh (UG901).
 
 module WeightRam #(
-    parameter int ADDR_WIDTH = 10,
-    parameter int DATA_WIDTH = 16,
-    parameter     INIT_FILE  = "NONE"
+    parameter int    ADDR_WIDTH = 10,
+    parameter int    DATA_WIDTH = 16,
+    parameter string INIT_FILE  = "NONE"
 )(
     input  logic                  clk,
     input  logic                  rst_n,
