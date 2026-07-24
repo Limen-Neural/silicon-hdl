@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 # .github/workflows/vivado-ci.yml
 # Phase B / issue #12: Vivado synth+sim on self-hosted runner.
-# Auto-runs on same-repo PRs and workflow_dispatch. Fork PRs are skipped
-# so untrusted head code never lands on the persistent Vivado host.
-# Still NOT a free-runner required check (labels: self-hosted, vivado).
+# Auto-runs on same-repo PRs and workflow_dispatch. Job-level if: skips
+# fork PRs that leave this file alone. Residual risk: pull_request runs the
+# *head* workflow, so a fork that edits this yml can drop the gate — rely on
+# repo Actions "Require approval for all outside collaborators" (or runner
+# group restrictions) for true fork isolation. Not a free-runner required check.
 
 name: Vivado CI
 

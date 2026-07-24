@@ -24,8 +24,11 @@ synthesis and bitstream generation.
 - Workflow: `.github/workflows/vivado-ci.yml` (issue #12 / epic #23 Phase B)
 - Triggers: **same-repo** pull_request (`opened` / `synchronize` / `reopened` /
   `ready_for_review`), plus **Actions → Vivado CI → Run workflow**
-- **Fork PRs are skipped** (`head.repo.full_name == github.repository` gate) so
-  untrusted fork code never runs on the persistent Vivado host
+- **Fork PRs are skipped** when they leave this workflow file alone
+  (`head.repo.full_name == github.repository` job `if:`). Residual risk: GitHub
+  runs the workflow from the PR *head*, so a fork that edits `vivado-ci.yml` can
+  drop the gate — keep **Require approval for all outside collaborators** (or
+  restrict the self-hosted runner group) enabled for real fork isolation
 - After a run, open the PR **Checks** tab or **Actions → Vivado CI**
 - Runner: `silicon-hdl-vivado` labels `self-hosted`,`vivado` (`~/actions-runner/silicon-hdl-runner`)
 
