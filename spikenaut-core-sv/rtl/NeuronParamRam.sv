@@ -21,9 +21,18 @@ module NeuronParamRam #(
 
     (* ram_style = "block" *) logic [PARAM_WIDTH-1:0] mem [0:(2**ADDR_WIDTH)-1];
 
+    // $readmemh loads min(file lines, mem depth); pair INIT_FILE size with ADDR_WIDTH.
     initial begin
-        if (INIT_FILE != "")
+        if (INIT_FILE != "") begin
+            int fd;
+            fd = $fopen(INIT_FILE, "r");
+            if (fd == 0) begin
+                $error("NeuronParamRam: INIT_FILE '%s' not found or cannot be opened", INIT_FILE);
+                $fatal(1);
+            end
+            $fclose(fd);
             $readmemh(INIT_FILE, mem);
+        end
     end
 
     // Synchronous reset on dout (to use rst_n port and provide known value in sim).

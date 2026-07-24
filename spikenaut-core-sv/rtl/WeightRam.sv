@@ -25,9 +25,18 @@ module WeightRam #(
 
     // Elaboration/time-0 init from Spikenaut-style .mem (one hex word per line).
     // Paths are relative to the simulator/synth working directory (repo root in CI).
+    // $readmemh loads min(file lines, mem depth); pair INIT_FILE size with ADDR_WIDTH.
     initial begin
-        if (INIT_FILE != "")
+        if (INIT_FILE != "") begin
+            int fd;
+            fd = $fopen(INIT_FILE, "r");
+            if (fd == 0) begin
+                $error("WeightRam: INIT_FILE '%s' not found or cannot be opened", INIT_FILE);
+                $fatal(1);
+            end
+            $fclose(fd);
             $readmemh(INIT_FILE, mem);
+        end
     end
 
     // Synchronous reset on dout (to use rst_n port and provide known value in sim).

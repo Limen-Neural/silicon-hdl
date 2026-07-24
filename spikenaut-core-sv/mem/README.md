@@ -22,3 +22,5 @@ Hex `.mem` files for `$readmemh` into `WeightRam` / `NeuronParamRam`.
 **Not used here:** `v1_fpga` (8-neuron toy), per-asset `*_v2` clones — use only when a profile switch (E9) is implemented.
 
 Paths passed to `INIT_FILE` are relative to the tool working directory (repo root in CI and recommended Vivado batch).
+
+**Depth:** `$readmemh` loads `min(file lines, 2**ADDR_WIDTH)` words. Match width to the image, e.g. `WeightRam` with `merged_v2_weights.mem` (256 lines) should use `ADDR_WIDTH=8` (not the default 10). Thresholds/decay (16 lines) fit `NeuronParamRam` default `ADDR_WIDTH=8` with room to spare.

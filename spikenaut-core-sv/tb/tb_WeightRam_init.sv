@@ -7,7 +7,8 @@
 
 module tb_WeightRam_init;
 
-    localparam int ADDR_WIDTH = 10;
+    // merged_v2_weights.mem has 256 lines → ADDR_WIDTH=8 (not default 10).
+    localparam int ADDR_WIDTH = 8;
     localparam int DATA_WIDTH = 16;
     localparam int CLK_PERIOD = 10;
     // Repo-root-relative path (CI and local: run from silicon-hdl/)
@@ -71,23 +72,23 @@ module tb_WeightRam_init;
         @(negedge clk);
 
         // merged_v2_weights.mem: line0=00C0, line1=00C1, line3=00C3
-        read_addr(10'd0, q);
+        read_addr(8'd0, q);
         check(q === 16'h00C0, "mem[0] should be 00C0 after $readmemh");
 
-        read_addr(10'd1, q);
+        read_addr(8'd1, q);
         check(q === 16'h00C1, "mem[1] should be 00C1 after $readmemh");
 
-        read_addr(10'd3, q);
+        read_addr(8'd3, q);
         check(q === 16'h00C3, "mem[3] should be 00C3 after $readmemh");
 
         // Runtime write still works over init (write on this posedge via setup at negedge)
         @(negedge clk);
         we   = 1'b1;
-        addr = 10'd1;
+        addr = 8'd1;
         din  = 16'h1234;
         @(negedge clk); // write commits on intervening posedge
         we = 1'b0;
-        read_addr(10'd1, q);
+        read_addr(8'd1, q);
         check(q === 16'h1234, "write after init should stick");
 
         if (errors == 0)
