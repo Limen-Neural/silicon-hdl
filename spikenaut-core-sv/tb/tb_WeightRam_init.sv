@@ -5,14 +5,17 @@
 
 `timescale 1ns/1ps
 
-module tb_WeightRam_init;
+// INIT is a module parameter so Vivado sim_core.tcl can pass an absolute path
+// via set_property generic (XSim CWD is the sim run dir, not the repo root).
+// Default: repo-root-relative for Verilator CI / local `./obj_dir` from silicon-hdl/.
+module tb_WeightRam_init #(
+    parameter string INIT = "spikenaut-core-sv/mem/merged_v2_weights.mem"
+);
 
-    // merged_v2_weights.mem has 256 lines → ADDR_WIDTH=8 (not default 10).
+    // merged_v2_weights.mem has 256 data lines → ADDR_WIDTH=8 (not default 10).
     localparam int ADDR_WIDTH = 8;
     localparam int DATA_WIDTH = 16;
     localparam int CLK_PERIOD = 10;
-    // Repo-root-relative path (CI and local: run from silicon-hdl/)
-    localparam string INIT = "spikenaut-core-sv/mem/merged_v2_weights.mem";
 
     logic                   clk;
     logic                   rst_n;

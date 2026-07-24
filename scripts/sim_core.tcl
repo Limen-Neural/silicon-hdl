@@ -68,6 +68,16 @@ foreach tb_top $core_tb_tops {
     set_property top $tb_top [get_filesets sim_1]
     set_property top_lib xil_defaultlib [get_filesets sim_1]
 
+    # tb_WeightRam_init: XSim CWD is the sim run directory, so pass an absolute
+    # INIT path (repo-root-relative default works for Verilator only).
+    if {$tb_top eq "tb_WeightRam_init"} {
+        set mem_abs [file normalize [file join $repo_root spikenaut-core-sv mem merged_v2_weights.mem]]
+        set_property generic "INIT=$mem_abs" [get_filesets sim_1]
+    } else {
+        # Clear any leftover generic from a prior top in this loop.
+        catch {set_property generic {} [get_filesets sim_1]}
+    }
+
     # Force re-elaboration when switching top modules to avoid stale
     # compilation artifacts / dirty directory issues in the sim fileset.
     # catch() guards the first iteration where the run may not exist yet.

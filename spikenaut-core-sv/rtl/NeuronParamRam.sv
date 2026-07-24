@@ -4,12 +4,13 @@
 // Per-neuron parameter RAM (single value per address, e.g. threshold or leak for a neuron).
 // gh-14 5u3.6/5u3.7 (comment 5447): header now matches impl (stores ONE param per addr;
 // multiple param types like thresh/leak/weight use separate RAM instances or addressing in caller).
-// Optional INIT_FILE: Q8.8 hex via $readmemh. Empty = undefined until host write.
+// Optional INIT_FILE: Q8.8 hex via $readmemh. Default "NONE" (not "") for
+// Vivado UG901 null-string parameter rules; no load until host write.
 
 module NeuronParamRam #(
     parameter int    ADDR_WIDTH  = 8,
     parameter int    PARAM_WIDTH = 16,
-    parameter string INIT_FILE   = ""
+    parameter string INIT_FILE   = "NONE"
 )(
     input  logic                   clk,
     input  logic                   rst_n,
@@ -23,7 +24,7 @@ module NeuronParamRam #(
 
     // $readmemh loads min(file lines, mem depth); pair INIT_FILE size with ADDR_WIDTH.
     initial begin
-        if (INIT_FILE != "") begin
+        if (INIT_FILE != "NONE" && INIT_FILE != "") begin
             int fd;
             fd = $fopen(INIT_FILE, "r");
             if (fd == 0) begin

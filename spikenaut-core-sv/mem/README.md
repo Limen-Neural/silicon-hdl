@@ -14,7 +14,11 @@ Hex `.mem` files for `$readmemh` into `WeightRam` / `NeuronParamRam`.
 | `merged_v2_output_weights.mem` | 48 | `dataset/merged_v2/parameters_output_weights.mem` | Output layer (signed Q8.8) |
 
 **Format:** one 16-bit Q8.8 hex word per line  
-(`0120` = 288/256 = 1.125; `FFF9` = signed −7/256 ≈ −0.027).
+(`0120` = 288/256 = 1.125; `FFF9` = signed −7/256 ≈ −0.027).  
+Leading `// SPDX-...` comment lines are allowed (`$readmemh` skips `//` comments).
+
+**RTL default:** `INIT_FILE = "NONE"` (not `""`) so Vivado synthesis accepts the parameter
+(UG901 null-string rule). Pass a real path only when loading.
 
 **Canonical vault path:** `~/Spikenaut-Vault/Spikenaut-SNN/dataset/merged_v2/`  
 (also HF `rmems/Spikenaut-SNN`). Re-copy from vault after retrain; do not invent hex by hand.
