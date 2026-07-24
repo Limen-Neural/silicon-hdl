@@ -69,6 +69,17 @@ jobs:
             spikenaut-core-sv/tb/tb_NeuronParamRam.sv
           ./obj_dir/Vtb_NeuronParamRam
 
+      - name: Run tb_NeuronParamRam_init
+        run: |
+          rm -rf obj_dir
+          # INIT_FILE paths are repo-root relative (merged_v2 thresholds)
+          verilator --binary --timing -Wno-WIDTHEXPAND -Wno-DECLFILENAME -Wno-TIMESCALEMOD \
+            --top-module tb_NeuronParamRam_init \
+            -Ispikenaut-core-sv/rtl \
+            spikenaut-core-sv/rtl/NeuronParamRam.sv \
+            spikenaut-core-sv/tb/tb_NeuronParamRam_init.sv
+          ./obj_dir/Vtb_NeuronParamRam_init
+
       - name: Run tb_StdpController
         run: |
           rm -rf obj_dir

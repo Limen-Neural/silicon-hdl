@@ -4,8 +4,8 @@
 // Per-neuron parameter RAM (single value per address, e.g. threshold or leak for a neuron).
 // gh-14 5u3.6/5u3.7 (comment 5447): header now matches impl (stores ONE param per addr;
 // multiple param types like thresh/leak/weight use separate RAM instances or addressing in caller).
-// Optional INIT_FILE: Q8.8 hex via $readmemh. SV `parameter string` (not bare
-// untyped which truncates long paths). Default "NONE" = no load.
+// Optional INIT_FILE: Q8.8 hex via $readmemh. Prefer SV `parameter string`
+// over bare untyped defaults (tool-specific sizing). Default "NONE" = no load.
 // $fopen precheck is sim-only; synthesis keeps $readmemh.
 
 module NeuronParamRam #(

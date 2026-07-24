@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // tb_WeightRam_init.sv
+// Canonical source: spikenaut-core-sv/tb
 // Verifies WeightRam INIT_FILE / $readmemh against merged_v2 weight image.
 // Stimulus on negedge clk (matches other core testbenches).
 

@@ -5,9 +5,9 @@
 //
 // gh-14 5u3.6 (P1): added rst_n + dout reset (for sim safety + post-config).
 // Optional INIT_FILE: Q8.8 hex via $readmemh (sim + Vivado BRAM init).
-// Use SV `parameter string` (not bare untyped): `parameter INIT_FILE = "NONE"` is
-// only 32 bits wide, so longer paths truncate and $readmemh silently fails
-// (broke free-runner tb_WeightRam_init). Default "NONE" = no load.
+// Prefer SV `parameter string` over bare untyped `parameter INIT_FILE = "NONE"`:
+// some tools size untyped string defaults narrowly and path overrides misbehave
+// (free-runner Verilator tb_WeightRam_init). Default "NONE" = no load.
 // $fopen/$error/$fatal are simulation-only; synthesis keeps $readmemh (UG901).
 
 module WeightRam #(

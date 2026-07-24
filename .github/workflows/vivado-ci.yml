@@ -1,17 +1,15 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 # .github/workflows/vivado-ci.yml
-# Phase B / issue #12: optional Vivado synth+sim on self-hosted runner.
-# NOT a required free-runner check.
-# Triggers: workflow_dispatch, or PR labeled with exact label vivado-ci
-# (the labeled event must be the vivado-ci label itself — not any label while
-# vivado-ci is already present).
+# Phase B / issue #12: Vivado synth+sim on self-hosted runner.
+# Runs on every PR and on workflow_dispatch. Still NOT a free-runner
+# required check (self-hosted labels only: self-hosted, vivado).
 
 name: Vivado CI
 
 on:
   workflow_dispatch:
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -23,12 +21,6 @@ concurrency:
 
 jobs:
   vivado:
-    # Dispatch always; PR only when the label that was just applied is vivado-ci.
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-       github.event.action == 'labeled' &&
-       github.event.label.name == 'vivado-ci')
     runs-on: [self-hosted, vivado]
     timeout-minutes: 90
     steps:

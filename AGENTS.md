@@ -19,13 +19,12 @@ Companion agent guidance for `silicon-hdl`. Claude Code loads this file via `@AG
 No Vivado license is assumed locally. Prefer Verilator for iteration; reserve Vivado for
 synthesis and bitstream generation.
 
-**Optional Vivado CI** (self-hosted only, never a free-runner required check):
+**Vivado CI** (self-hosted only, never a free-runner required check):
 
 - Workflow: `.github/workflows/vivado-ci.yml` (issue #12 / epic #23 Phase B)
-- Triggers: **Actions → Vivado CI → Run workflow**, or apply PR label **`vivado-ci`**
-  (only the `labeled` event for that label; re-run = remove label, re-add, or dispatch)
-- After a successful run, open the PR **Checks** tab or **Actions → Vivado CI**
-  (self-hosted jobs do not appear on free `ubuntu-latest` check lists unless that commit ran them)
+- Triggers: **every pull_request** (`opened` / `synchronize` / `reopened` /
+  `ready_for_review`), plus **Actions → Vivado CI → Run workflow**
+- After a run, open the PR **Checks** tab or **Actions → Vivado CI**
 - Runner: `silicon-hdl-vivado` labels `self-hosted`,`vivado` (`~/actions-runner/silicon-hdl-runner`)
 
 

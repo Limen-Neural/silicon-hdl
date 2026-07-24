@@ -17,11 +17,11 @@ Hex `.mem` files for `$readmemh` into `WeightRam` / `NeuronParamRam`.
 (`0120` = 288/256 = 1.125; `FFF9` = signed −7/256 ≈ −0.027).  
 Leading `// SPDX-...` comment lines are allowed (`$readmemh` skips `//` comments).
 
-**RTL default:** `parameter string INIT_FILE = "NONE"`. Do **not** use bare
-untyped `parameter INIT_FILE = "NONE"` — that is only 32 bits wide and
-**truncates** longer paths so `$readmemh` silently fails (free-runner CI).
-`$fopen` precheck is `` `ifndef SYNTHESIS `` only; synthesis still uses
-`$readmemh` for BRAM init.
+**RTL default:** `parameter string INIT_FILE = "NONE"`. Prefer typed `string`
+over bare untyped string parameters: some tools size untyped defaults
+narrowly and path overrides misbehave (saw this on free-runner Verilator).
+`$fopen` precheck is `` `ifndef SYNTHESIS `` only and fails loudly if the
+path is bad; synthesis still uses `$readmemh` for BRAM init.
 
 **Canonical vault path:** `~/Spikenaut-Vault/Spikenaut-SNN/dataset/merged_v2/`  
 (also HF `rmems/Spikenaut-SNN`). Re-copy from vault after retrain; do not invent hex by hand.
