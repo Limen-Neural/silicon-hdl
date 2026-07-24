@@ -22,8 +22,10 @@ synthesis and bitstream generation.
 **Vivado CI** (self-hosted only, never a free-runner required check):
 
 - Workflow: `.github/workflows/vivado-ci.yml` (issue #12 / epic #23 Phase B)
-- Triggers: **every pull_request** (`opened` / `synchronize` / `reopened` /
+- Triggers: **same-repo** pull_request (`opened` / `synchronize` / `reopened` /
   `ready_for_review`), plus **Actions → Vivado CI → Run workflow**
+- **Fork PRs are skipped** (`head.repo.full_name == github.repository` gate) so
+  untrusted fork code never runs on the persistent Vivado host
 - After a run, open the PR **Checks** tab or **Actions → Vivado CI**
 - Runner: `silicon-hdl-vivado` labels `self-hosted`,`vivado` (`~/actions-runner/silicon-hdl-runner`)
 
