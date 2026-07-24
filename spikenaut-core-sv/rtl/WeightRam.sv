@@ -5,13 +5,14 @@
 //
 // gh-14 5u3.6 (P1): added rst_n + dout reset (for sim safety + post-config).
 // Optional INIT_FILE: Q8.8 hex via $readmemh (sim + Vivado BRAM init).
-// Default "NONE" (not "") — Vivado UG901 rejects null-string parameters.
-// Host load path (silicon-bridge / nir.rs) remains the long-term write path.
+// Untyped string parameter (not `parameter string`) for Vivado UG901 construct support.
+// Default "NONE" — no load until a real path is passed. Host load remains long-term path.
+// $fopen/$error/$fatal are simulation-only; synthesis keeps $readmemh only (UG901).
 
 module WeightRam #(
-    parameter int    ADDR_WIDTH = 10,
-    parameter int    DATA_WIDTH = 16,
-    parameter string INIT_FILE  = "NONE"
+    parameter int ADDR_WIDTH = 10,
+    parameter int DATA_WIDTH = 16,
+    parameter     INIT_FILE  = "NONE"
 )(
     input  logic                  clk,
     input  logic                  rst_n,
@@ -28,13 +29,17 @@ module WeightRam #(
     // $readmemh loads min(file lines, mem depth); pair INIT_FILE size with ADDR_WIDTH.
     initial begin
         if (INIT_FILE != "NONE" && INIT_FILE != "") begin
-            int fd;
-            fd = $fopen(INIT_FILE, "r");
-            if (fd == 0) begin
-                $error("WeightRam: INIT_FILE '%s' not found or cannot be opened", INIT_FILE);
-                $fatal(1);
+`ifndef SYNTHESIS
+            begin : init_file_check
+                int fd;
+                fd = $fopen(INIT_FILE, "r");
+                if (fd == 0) begin
+                    $error("WeightRam: INIT_FILE '%s' not found or cannot be opened", INIT_FILE);
+                    $fatal(1);
+                end
+                $fclose(fd);
             end
-            $fclose(fd);
+`endif
             $readmemh(INIT_FILE, mem);
         end
     end
