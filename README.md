@@ -4,7 +4,20 @@
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-Deduplicated, Vivado-ready monorepo for neuromorphic / spiking neural network FPGA primitives.
+Deduplicated, Vivado-ready monorepo for neuromorphic / spiking neural network FPGA
+primitives, targeting Digilent Basys 3 (Artix-7).
+
+## About this repo (learning field)
+
+I am **still early on the HDL / SystemVerilog curve** — far from expert. This
+repository is my **practice ground**: real RTL, Verilator CI, optional Vivado and
+Basys 3 bring-up, and experimental SNN demos (weights via `$readmemh`, multi-neuron
+scale later). I rely **heavily on AI coding agents** (and review bots) to design,
+debug, and keep the tree consistent (dedup guardian, free CI). Treat PRs and docs as
+student-lab work in public, not as production-grade silicon or a finished product.
+
+If you fork or review: expect sharp edges, questions in issues, and iterative
+learning. Corrections and teaching-oriented reviews are welcome.
 
 ## Repository layout
 
